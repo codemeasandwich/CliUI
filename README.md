@@ -68,6 +68,8 @@ See below for a complete list of widgets.
 
 [Line Chart](#line-chart)
 
+[Scatter Plot](#scatter-plot)
+
 [Bar Chart](#bar-chart)
 
 [Stacked Bar Chart](#stacked-bar-chart)
@@ -106,6 +108,7 @@ See below for a complete list of widgets.
            , baseline: "black"}
          , xLabelPadding: 3
          , xPadding: 5
+         , yPadding: 11 //bottom padding for x-axis labels (default: 11)
          , showLegend: true
          , wholeNumbersOnly: false //true=do not show fraction in y axis
          , label: 'Title'})
@@ -122,7 +125,42 @@ See below for a complete list of widgets.
    screen.append(line) //must append before setting data
    line.setData([series1, series2])
 `````
-**Examples:** [simple line chart](./examples/line-fraction.js), [multiple lines](./examples/multi-line-chart.js), [256 colors](./examples/line-random-colors.js)
+**Examples:** [simple line chart](./examples/line-fraction.js), [multiple lines](./examples/multi-line-chart.js), [256 colors](./examples/line-random-colors.js), [custom yPadding](./examples/line-ypadding.js)
+
+### Scatter Plot
+
+`````javascript
+   var scatter = contrib.scatter(
+         { style:
+           { point: "yellow"
+           , text: "green"
+           , baseline: "black"}
+         , xPadding: 10
+         , yPadding: 11
+         , numYLabels: 5
+         , numXLabels: 5
+         , showLegend: true
+         , marker: 'o' // 'o', '+', 'x', '*', '.'
+         , label: 'Title'})
+   var series1 = {
+         title: 'apples',
+         x: [1, 2, 3, 4, 5],
+         y: [5, 1, 7, 5, 3],
+         style: { point: 'red', marker: 'o' }
+      }
+   var series2 = {
+         title: 'oranges',
+         x: [1.5, 2.5, 3.5, 4.5],
+         y: [2, 4, 9, 8],
+         style: { point: 'yellow', marker: '+' }
+      }
+   screen.append(scatter) //must append before setting data
+   scatter.setData([series1, series2])
+`````
+
+Unlike line charts which use categorical X labels, scatter plots use numeric X values and support multiple marker styles.
+
+**Examples:** [scatter plot](./examples/scatter.js), [multi-series](./examples/scatter-multi.js)
 
 ### Bar Chart
 
@@ -339,7 +377,7 @@ note: only png images are supported
      , height: '30%'
      , border: {type: "line", fg: "cyan"}
      , columnSpacing: 10 //in chars
-     , columnWidth: [16, 12, 12] /*in chars*/ })
+     , columnWidth: [16, 12, 12] /*in chars, or use percentages: ['30%', '40%', '30%']*/ })
 
    //allow control the table with the keyboard
    table.focus()
@@ -350,6 +388,8 @@ note: only png images are supported
       [ [1, 2, 3]
       , [4, 5, 6] ]})
 `````
+
+**Examples:** [basic table](./examples/table.js), [percentage column widths](./examples/table-percentage-width.js)
 
 ### Tree
 

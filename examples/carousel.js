@@ -58,8 +58,13 @@ screen.key(['escape', 'q', 'C-c'], function(ch, key) {
   return process.exit(0);
 });
 
+// Options:
+//   interval: auto-advance time in ms (optional)
+//   controlKeys: enable left/right arrows and Home/End keys
+//   rotate: true to loop back to first page after last (default: false)
 var carousel = new contrib.carousel( [page1, page2]
                                    , { screen: screen
                                      , interval: 3000
-                                     , controlKeys: true })
+                                     , controlKeys: true
+                                     , rotate: true })
 carousel.start()

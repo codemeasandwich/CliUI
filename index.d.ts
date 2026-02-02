@@ -48,11 +48,13 @@ declare namespace BlessedContrib {
             | GaugeOptions
             | GaugeListOptions
             | DonutOptions
+            | ScatterOptions
 
 
         export type WidgetElements = BoxElement
             | BarElement
             | LineElement
+            | ScatterElement
             | StackedBarElement
             | CanvasElement
             | TreeElement
@@ -84,6 +86,7 @@ declare namespace BlessedContrib {
 
             set<T extends (options?: BarOptions) => S, S extends BarElement>(row: number, col: number, rowSpan: number, colSpan: number, obj: T, opt: BarOptions): BarElement
             set<T extends (options?: LineOptions) => S, S extends LineElement>(row: number, col: number, rowSpan: number, colSpan: number, obj: T, opt: LineOptions): LineElement
+            set<T extends (options?: ScatterOptions) => S, S extends ScatterElement>(row: number, col: number, rowSpan: number, colSpan: number, obj: T, opt: ScatterOptions): ScatterElement
             set<T extends (options?: StackedBarOptions) => S, S extends StackedBarElement>(row: number, col: number, rowSpan: number, colSpan: number, obj: T, opt: StackedBarOptions): StackedBarElement
             set<T extends (options?: CanvasOptions) => S, S extends CanvasElement>(row: number, col: number, rowSpan: number, colSpan: number, obj: T, opt: CanvasOptions): CanvasElement
 
@@ -157,6 +160,8 @@ declare namespace BlessedContrib {
             }
             xLabelPadding?: number
             xPadding?: number
+            /** Bottom padding for X-axis labels (default: 11) */
+            yPadding?: number
             numYLabels?: number
             legend?: { width: number }
             wholeNumbersOnly?: boolean
@@ -171,6 +176,46 @@ declare namespace BlessedContrib {
             setData(data: LineData[]): void;
 
             options: LineOptions;
+        }
+
+        export interface ScatterData {
+            title?: string
+            x?: number[]
+            y?: number[]
+            style?: {
+                point?: string
+                marker?: 'o' | '+' | 'x' | '*' | '.'
+            }
+        }
+
+        export interface ScatterOptions extends CanvasOptions<ScatterData[]> {
+            style?: {
+                point?: string
+                text?: string
+                baseline?: string
+            }
+            xLabelPadding?: number
+            xPadding?: number
+            yPadding?: number
+            numYLabels?: number
+            numXLabels?: number
+            legend?: { width: number }
+            wholeNumbersOnly?: boolean
+            minX?: number
+            maxX?: number
+            minY?: number
+            maxY?: number
+            label?: string
+            /** Default marker style: 'o' | '+' | 'x' | '*' | '.' */
+            marker?: 'o' | '+' | 'x' | '*' | '.'
+        }
+
+        export class ScatterElement extends CanvasElement<ScatterData[]> implements IHasOptions<ScatterOptions> {
+            constructor(opts: ScatterOptions);
+
+            setData(data: ScatterData[]): void;
+
+            options: ScatterOptions;
         }
 
         export interface StackedBarData {
@@ -418,7 +463,8 @@ declare namespace BlessedContrib {
             parent?: any
             bold?: string
             columnSpacing?: number
-            columnWidth?: number[]
+            /** Column widths as fixed chars (16) or percentages ('25%') */
+            columnWidth?: (number | string)[]
             rows?: ListOptions<ListElementStyle>
             selectedFg?: string
             selectedBg?: string
@@ -493,6 +539,8 @@ declare namespace BlessedContrib {
 
         export class Line extends Widgets.LineElement {}
 
+        export class Scatter extends Widgets.ScatterElement {}
+
         export class StackedBar extends Widgets.StackedBarElement {}
 
         export class Canvas extends Widgets.CanvasElement {}
@@ -525,6 +573,8 @@ declare namespace BlessedContrib {
     export class grid extends Widgets.GridElement {}
 
     export function line(options?: Widgets.LineOptions): Widgets.LineElement
+
+    export function scatter(options?: Widgets.ScatterOptions): Widgets.ScatterElement
 
     export function bar(options?: Widgets.BarOptions): Widgets.BarElement
 
