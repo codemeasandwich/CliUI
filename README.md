@@ -1,4 +1,4 @@
-## blessed-contrib
+## Cli UI
 
 Build dashboards (or any other application) using ascii/ansi art and javascript.
 
@@ -7,14 +7,10 @@ Friendly to terminals, ssh and developers. Extends [blessed](https://github.com/
 You should also [check WOPR](https://github.com/yaronn/wopr): a markup for creating terminal reports, presentations and infographics.
 
 
-**Contributors:**
+**Maintained by [Brian Shannon](https://www.linkedin.com/in/brianshann/)**
+[Bluesky](https://bsky.app/profile/codemeasandwich.bsky.social) • [GitHub](https://github.com/codemeasandwich)
 
-Yaron Naveh ([@YaronNaveh](http://twitter.com/YaronNaveh))
-Chris ([@xcezzz](https://twitter.com/xcezzz))
-Miguel Valadas ([@mvaladas](https://github.com/mvaladas))
-Liran Tal ([@lirantal](https://github.com/lirantal))
-
-**Demo ([full size](https://raw.githubusercontent.com/yaronn/blessed-contrib/master/docs/images/term3.gif)):**
+**Demo ([full size](https://raw.githubusercontent.com/codemeasandwich/CliUI/master/docs/images/term3.gif)):**
 
 <img src="./docs/images/truload.png" alt="term" width="800">
 
@@ -24,8 +20,8 @@ Liran Tal ([@lirantal](https://github.com/lirantal))
 
 **Running the demo**
 
-    git clone https://github.com/yaronn/blessed-contrib.git
-    cd blessed-contrib
+    git clone https://github.com/codemeasandwich/CliUI.git
+    cd CliUI
     npm install
     node ./examples/dashboard.js
 
@@ -33,15 +29,15 @@ Works on Linux, OS X and Windows. For Windows follow the [pre requisites](http:/
 
 ## Installation (to build custom projects)
 
-    npm install blessed blessed-contrib
+    npm install blessed cli-ui
 
 ## Usage
 
-You can use any of the default widgets of [blessed](https://github.com/chjj/blessed) (texts, lists and etc) or the widgets added in blessed-contrib (described below). A [layout](#layouts) is optional but useful for dashboards. The widgets in blessed-contrib follow the same usage pattern:
+You can use any of the default widgets of [blessed](https://github.com/chjj/blessed) (texts, lists and etc) or the widgets added in Cli UI (described below). A [layout](#layouts) is optional but useful for dashboards. The widgets in Cli UI follow the same usage pattern:
 
 `````javascript
    var blessed = require('blessed')
-     , contrib = require('blessed-contrib')
+     , contrib = require('cli-ui')
      , screen = blessed.screen()
      , line = contrib.line(
          { style:
@@ -442,7 +438,7 @@ Every node is a hash and it can have custom properties that can be used in "sele
 
 `````javascript
    var markdown = contrib.markdown()
-   markdown.setMarkdown('# Hello \n blessed-contrib renders markdown using `marked-terminal`')
+   markdown.setMarkdown('# Hello \n Cli UI renders markdown using `marked-terminal`')
 `````
 
 ### Colors
@@ -543,22 +539,22 @@ One use case is an office dashboard with rotating views:
 
 **Running the sample**
 
-    git clone https://github.com/yaronn/blessed-contrib.git
-    cd blessed-contrib
+    git clone https://github.com/codemeasandwich/CliUI.git
+    cd CliUI
     npm install
     node ./examples/dashboard.js
 
 **Installation (for a custom dashboard)**
 
     npm install blessed
-    npm install blessed-contrib
+    npm install cli-ui
 
 
 **A simple dashboard**
 
 `````javascript
    var blessed = require('blessed')
-     , contrib = require('blessed-contrib')
+     , contrib = require('cli-ui')
      , screen = blessed.screen()
      , grid = new contrib.grid({rows: 1, cols: 2, screen: screen})
 
@@ -601,4 +597,5 @@ If you see questions marks or some (or all) missign characters try running with 
 This library is under the [MIT License](http://opensource.org/licenses/MIT)
 
 ## More Information
-Created by Yaron Naveh ([twitter](http://twitter.com/YaronNaveh), [blog](http://webservices20.blogspot.com/))
+**Maintained by [Brian Shannon](https://www.linkedin.com/in/brianshann/)**
+[Bluesky](https://bsky.app/profile/codemeasandwich.bsky.social) • [GitHub](https://github.com/codemeasandwich)
