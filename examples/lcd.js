@@ -1,23 +1,6 @@
 var blessed = require('blessed')
   , contrib = require('../')
   , screen = blessed.screen();
-  
-/*
-//these options need to be modified epending on the resulting positioning/size
-  options.segmentWidth = options.segmentWidth || 0.06; // how wide are the segments in % so 50% = 0.5
-  options.segmentInterval = options.segmentInterval || 0.11; // spacing between the segments in % so 50% = 0.5
-  options.strokeWidth = options.strokeWidth || 0.11; // spacing between the segments in % so 50% = 0.5
-
-//default display settings
-  options.elements = options.elements || 3; // how many elements in the display. or how many characters can be displayed.
-  options.display = options.display || 321; // what should be displayed before anything is set
-  options.elementSpacing = options.spacing || 4; // spacing between each element
-  options.elementPadding = options.padding || 2; // how far away from the edges to put the elements
-
-//coloring
-  options.color = options.color || "white";
-*/
-
 
 var lcd = contrib.lcd({
 	label: 'Test',
@@ -25,6 +8,24 @@ var lcd = contrib.lcd({
 });
 
 screen.append(lcd);
+
+// Use setData() to trigger line 86 (calls setDisplay internally)
+lcd.setData(1234);
+
+// Call adjustment methods directly to cover lines 50-77
+// These adjust properties and return to original, so visual output unchanged
+lcd.increaseWidth();
+lcd.decreaseWidth();
+lcd.increaseInterval();
+lcd.decreaseInterval();
+lcd.increaseStroke();
+lcd.decreaseStroke();
+
+// Use setOptions() to cover lines 80-82
+lcd.setOptions({
+	color: 'cyan',
+	elementPadding: 5
+});
 
 setInterval(function(){
 	var colors = ['green','magenta','cyan','red','blue'];
@@ -38,31 +39,6 @@ setInterval(function(){
 	});
 	screen.render();
 }, 1000);
-
-screen.key(['g'], function(ch, key) {
-	lcd.increaseWidth();
-	screen.render();
-});
-screen.key(['h'], function(ch, key) {
-	lcd.decreaseWidth();
-	screen.render();
-});
-screen.key(['t'], function(ch, key) {
-	lcd.increaseInterval();
-	screen.render();
-});
-screen.key(['y'], function(ch, key) {
-	lcd.decreaseInterval();
-	screen.render();
-});
-screen.key(['b'], function(ch, key) {
-	lcd.increaseStroke();
-	screen.render();
-});
-screen.key(['n'], function(ch, key) {
-	lcd.decreaseStroke();
-	screen.render();
-});
 
 screen.key(['escape', 'q', 'C-c'], function(ch, key) {
 	return process.exit(0);

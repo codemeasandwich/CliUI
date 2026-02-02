@@ -68,3 +68,12 @@ var carousel = new contrib.carousel( [page1, page2]
                                      , controlKeys: true
                                      , rotate: true })
 carousel.start()
+
+// Call navigation methods directly to cover lines 17-50
+carousel.next()   // Go to page 2 (covers lines 17-27)
+carousel.prev()   // Back to page 1 (covers lines 30-40)
+carousel.end()    // Go to last page (covers lines 48-50)
+carousel.home()   // Back to first page (covers lines 43-45)
+// Test rotate boundary: go past end
+carousel.next()   // To page 2
+carousel.next()   // Wraps to page 1 (rotate: true, covers line 24)

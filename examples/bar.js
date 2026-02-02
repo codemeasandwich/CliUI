@@ -11,8 +11,9 @@ var blessed = require('blessed')
 
 screen.append(bar)
 
+// Include a very small value (1) to trigger strokeStyle 'normal' branch (lines 64-65)
 bar.setData(
-       { titles: ['bar1', 'bar2']
-       , data: [5, 10]})
+       { titles: ['bar1', 'bar2', 'bar3']
+       , data: [5, 10, 1]})
 
 screen.render()

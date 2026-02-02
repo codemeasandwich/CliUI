@@ -7,9 +7,9 @@ Auto-generated coverage report from test suite.
 
 | Metric | Average |
 |--------|--------|
-| Lines | 83.46% |
-| Branches | 77.55% |
-| Functions | 73.79% |
+| Lines | 85.61% |
+| Branches | 75.67% |
+| Functions | 81.66% |
 
 ---
 
@@ -19,42 +19,33 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 
 | File | Lines | Branches | Functions | Uncovered Lines |
 |------|-------|----------|-----------|----------------|
-| [lib/](lib/)[layout/](lib/layout/)[carousel.js](lib/layout/carousel.js) | 61.64% | 80.00% | 37.50% | 18, 19, 20, 21, 22... (28 total) |
+| [lib/](lib/)[layout/](lib/layout/)[carousel.js](lib/layout/carousel.js) | 82.19% | 83.33% | 87.50% | 21, 22, 33, 34, 35... (13 total) |
 | [lib/](lib/)[layout/](lib/layout/)[grid.js](lib/layout/grid.js) | 90.00% | 66.67% | 100.00% | 8, 18, 19, 20 |
 | [lib/](lib/)[server-utils.js](lib/server-utils.js) | 20.83% | 100.00% | 0.00% | 6, 7, 8, 9, 10... (57 total) |
 | [lib/](lib/)[utils.js](lib/utils.js) | 86.11% | 85.00% | 75.00% | 12, 13, 27, 28, 29... (10 total) |
 | [lib/](lib/)[widget/](lib/widget/)[canvas.js](lib/widget/canvas.js) | 94.12% | 75.00% | 80.00% | 12, 13, 36 |
 | [lib/](lib/)[widget/](lib/widget/)[charts/](lib/widget/charts/)[bar.js](lib/widget/charts/bar.js) | 88.42% | 55.00% | 80.00% | 44, 45, 64, 65, 84... (11 total) |
-| [lib/](lib/)[widget/](lib/widget/)[charts/](lib/widget/charts/)[line.js](lib/widget/charts/line.js) | 88.19% | 89.47% | 91.67% | 39, 40, 132, 225, 226... (30 total) |
-| [lib/](lib/)[widget/](lib/widget/)[charts/](lib/widget/charts/)[stacked-bar.js](lib/widget/charts/stacked-bar.js) | 93.55% | 59.46% | 90.91% | 36, 37, 61, 62, 168... (14 total) |
+| [lib/](lib/)[widget/](lib/widget/)[charts/](lib/widget/charts/)[line.js](lib/widget/charts/line.js) | 89.05% | 90.77% | 92.31% | 39, 40, 152, 245, 246... (30 total) |
+| [lib/](lib/)[widget/](lib/widget/)[charts/](lib/widget/charts/)[scatter.js](lib/widget/charts/scatter.js) | 85.98% | 58.67% | 93.33% | 40, 41, 88, 89, 107... (45 total) |
+| [lib/](lib/)[widget/](lib/widget/)[charts/](lib/widget/charts/)[stacked-bar.js](lib/widget/charts/stacked-bar.js) | 94.47% | 63.89% | 90.91% | 61, 62, 168, 169, 170... (12 total) |
 | [lib/](lib/)[widget/](lib/widget/)[donut.js](lib/widget/donut.js) | 91.95% | 88.24% | 90.00% | 51, 52, 137, 138, 139... (12 total) |
 | [lib/](lib/)[widget/](lib/widget/)[gauge-list.js](lib/widget/gauge-list.js) | 93.40% | 66.67% | 85.71% | 45, 46, 77, 78, 94... (7 total) |
-| [lib/](lib/)[widget/](lib/widget/)[gauge.js](lib/widget/gauge.js) | 92.80% | 83.33% | 85.71% | 52, 53, 79, 80, 101... (9 total) |
-| [lib/](lib/)[widget/](lib/widget/)[lcd.js](lib/widget/lcd.js) | 87.14% | 77.78% | 61.54% | 50, 51, 52, 55, 56... (58 total) |
-| [lib/](lib/)[widget/](lib/widget/)[log.js](lib/widget/log.js) | 81.82% | 80.00% | 50.00% | 23, 24, 25, 26, 27... (6 total) |
-| [lib/](lib/)[widget/](lib/widget/)[map.js](lib/widget/map.js) | 83.72% | 57.14% | 66.67% | 62, 63, 69, 70, 71... (14 total) |
+| [lib/](lib/)[widget/](lib/widget/)[gauge.js](lib/widget/gauge.js) | 94.40% | 86.67% | 85.71% | 52, 53, 79, 80, 112... (7 total) |
+| [lib/](lib/)[widget/](lib/widget/)[lcd.js](lib/widget/lcd.js) | 95.57% | 77.27% | 96.15% | 90, 91, 92, 93, 94... (20 total) |
+| [lib/](lib/)[widget/](lib/widget/)[log.js](lib/widget/log.js) | 94.59% | 75.00% | 100.00% | 31, 32 |
+| [lib/](lib/)[widget/](lib/widget/)[map.js](lib/widget/map.js) | 84.88% | 60.00% | 83.33% | 62, 63, 69, 70, 71... (13 total) |
 | [lib/](lib/)[widget/](lib/widget/)[markdown.js](lib/widget/markdown.js) | 79.69% | 88.89% | 80.00% | 44, 45, 46, 47, 48... (13 total) |
-| [lib/](lib/)[widget/](lib/widget/)[picture.js](lib/widget/picture.js) | 93.94% | 81.82% | 80.00% | 58, 59, 60, 61 |
-| [lib/](lib/)[widget/](lib/widget/)[sparkline.js](lib/widget/sparkline.js) | 81.03% | 81.82% | 75.00% | 43, 44, 45, 46, 47... (11 total) |
-| [lib/](lib/)[widget/](lib/widget/)[table.js](lib/widget/table.js) | 83.33% | 80.77% | 88.89% | 16, 17, 18, 19, 22... (22 total) |
-| [lib/](lib/)[widget/](lib/widget/)[tree.js](lib/widget/tree.js) | 93.98% | 76.32% | 83.33% | 49, 50, 51, 52, 53... (10 total) |
+| [lib/](lib/)[widget/](lib/widget/)[picture.js](lib/widget/picture.js) | 92.75% | 69.23% | 80.00% | 33, 61, 62, 63, 64 |
+| [lib/](lib/)[widget/](lib/widget/)[sparkline.js](lib/widget/sparkline.js) | 79.37% | 75.00% | 75.00% | 39, 40, 48, 49, 50... (13 total) |
+| [lib/](lib/)[widget/](lib/widget/)[table.js](lib/widget/table.js) | 80.30% | 71.79% | 75.00% | 16, 17, 18, 19, 45... (40 total) |
+| [lib/](lib/)[widget/](lib/widget/)[tree.js](lib/widget/tree.js) | 94.12% | 76.32% | 83.33% | 49, 50, 51, 52, 53... (10 total) |
 
 ### Uncovered Line Details
 
 #### lib/layout/carousel.js
 
-- **Line 18**: `this.currPage++;`
-- **Line 19**: `if (this.currPage==this.pages.length){`
-- **Line 20**: `if (!this.options.rotate) {`
 - **Line 21**: `this.currPage--;`
 - **Line 22**: `return;`
-- **Line 23**: `} else {`
-- **Line 24**: `this.currPage=0;`
-- **Line 25**: `}`
-- **Line 26**: `}`
-- **Line 27**: `this.move();`
-- **Line 31**: `this.currPage--;`
-- **Line 32**: `if (this.currPage<0) {`
 - **Line 33**: `if (!this.options.rotate) {`
 - **Line 34**: `this.currPage++;`
 - **Line 35**: `return;`
@@ -62,11 +53,6 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 - **Line 37**: `this.currPage=this.pages.length-1;`
 - **Line 38**: `}`
 - **Line 39**: `}`
-- **Line 40**: `this.move();`
-- **Line 44**: `this.currPage = 0;`
-- **Line 45**: `this.move();`
-- **Line 49**: `this.currPage = this.pages.length -1;`
-- **Line 50**: `this.move();`
 - **Line 64**: `if (key.name=='right') self.next();`
 - **Line 65**: `if (key.name=='left') self.prev();`
 - **Line 66**: `if (key.name=='home') self.home();`
@@ -176,39 +162,85 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 
 - **Line 39**: `throw 'error: canvas context does not exist. setData() for line charts must be called after the chart has been added to the screen via screen.append()';`
 - **Line 40**: `}`
-- **Line 132**: `// console.log("label[" + i + "] is undefined");`
-- **Line 225**: `return { width: 80`
-- **Line 226**: `, height: 30`
-- **Line 227**: `, left: 15`
-- **Line 228**: `, top: 12`
-- **Line 229**: `, xPadding: 5`
-- **Line 230**: `, label: 'Title'`
-- **Line 231**: `, showLegend: true`
-- **Line 232**: `, legend: {width: 12}`
-- **Line 233**: `, data: [ { title: 'us-east',`
-- **Line 234**: `x: ['t1', 't2', 't3', 't4'],`
-- **Line 235**: `y: [5, 1, 7, 5],`
-- **Line 236**: `style: {`
-- **Line 237**: `line: 'red'`
-- **Line 238**: `}`
-- **Line 239**: `}`
-- **Line 240**: `, { title: 'us-west',`
-- **Line 241**: `x: ['t1', 't2', 't3', 't4'],`
-- **Line 242**: `y: [2, 4, 9, 8],`
-- **Line 243**: `style: {line: 'yellow'}`
-- **Line 244**: `}`
-- **Line 245**: `, {title: 'eu-north-with-some-long-string',`
-- **Line 246**: `x: ['t1', 't2', 't3', 't4'],`
-- **Line 247**: `y: [22, 7, 12, 1],`
-- **Line 248**: `style: {line: 'blue'}`
-- **Line 249**: `}]`
-- **Line 250**: ``
-- **Line 251**: `};`
+- **Line 152**: `// console.log("label[" + i + "] is undefined");`
+- **Line 245**: `return { width: 80`
+- **Line 246**: `, height: 30`
+- **Line 247**: `, left: 15`
+- **Line 248**: `, top: 12`
+- **Line 249**: `, xPadding: 5`
+- **Line 250**: `, label: 'Title'`
+- **Line 251**: `, showLegend: true`
+- **Line 252**: `, legend: {width: 12}`
+- **Line 253**: `, data: [ { title: 'us-east',`
+- **Line 254**: `x: ['t1', 't2', 't3', 't4'],`
+- **Line 255**: `y: [5, 1, 7, 5],`
+- **Line 256**: `style: {`
+- **Line 257**: `line: 'red'`
+- **Line 258**: `}`
+- **Line 259**: `}`
+- **Line 260**: `, { title: 'us-west',`
+- **Line 261**: `x: ['t1', 't2', 't3', 't4'],`
+- **Line 262**: `y: [2, 4, 9, 8],`
+- **Line 263**: `style: {line: 'yellow'}`
+- **Line 264**: `}`
+- **Line 265**: `, {title: 'eu-north-with-some-long-string',`
+- **Line 266**: `x: ['t1', 't2', 't3', 't4'],`
+- **Line 267**: `y: [22, 7, 12, 1],`
+- **Line 268**: `style: {line: 'blue'}`
+- **Line 269**: `}]`
+- **Line 270**: ``
+- **Line 271**: `};`
+
+#### lib/widget/charts/scatter.js
+
+- **Line 40**: `throw 'error: canvas context does not exist. setData() for scatter plots must be called after the chart has been added to the screen via screen.append()';`
+- **Line 41**: `}`
+- **Line 88**: `return self.options.minX;`
+- **Line 89**: `}`
+- **Line 107**: `return self.options.maxX;`
+- **Line 108**: `}`
+- **Line 128**: `return self.options.minY;`
+- **Line 129**: `}`
+- **Line 150**: `return self.options.maxY;`
+- **Line 151**: `}`
+- **Line 180**: `xLabelPadding = maxPadding;`
+- **Line 181**: `}`
+- **Line 184**: `xPadding = xLabelPadding;`
+- **Line 185**: `}`
+- **Line 221**: `c.moveTo(x, y-2); c.lineTo(x, y+2);`
+- **Line 222**: `c.moveTo(x-2, y); c.lineTo(x+2, y);`
+- **Line 223**: `c.moveTo(x-1, y-1); c.lineTo(x+1, y+1);`
+- **Line 224**: `c.moveTo(x+1, y-1); c.lineTo(x-1, y+1);`
+- **Line 225**: `break;`
+- **Line 228**: `c.moveTo(x, y); c.lineTo(x, y);`
+- **Line 229**: `break;`
+- **Line 295**: `return { width: 80`
+- **Line 296**: `, height: 30`
+- **Line 297**: `, left: 15`
+- **Line 298**: `, top: 12`
+- **Line 299**: `, xPadding: 5`
+- **Line 300**: `, label: 'Title'`
+- **Line 301**: `, showLegend: true`
+- **Line 302**: `, legend: {width: 12}`
+- **Line 303**: `, marker: 'o'`
+- **Line 304**: `, data: [ { title: 'us-east',`
+- **Line 305**: `x: [1, 2, 3, 4, 5],`
+- **Line 306**: `y: [5, 1, 7, 5, 2],`
+- **Line 307**: `style: {`
+- **Line 308**: `point: 'red',`
+- **Line 309**: `marker: 'o'`
+- **Line 310**: `}`
+- **Line 311**: `}`
+- **Line 312**: `, { title: 'us-west',`
+- **Line 313**: `x: [1.5, 2.5, 3.5, 4.5],`
+- **Line 314**: `y: [2, 4, 9, 8],`
+- **Line 315**: `style: {point: 'yellow', marker: '+'}`
+- **Line 316**: `}]`
+- **Line 317**: ``
+- **Line 318**: `};`
 
 #### lib/widget/charts/stacked-bar.js
 
-- **Line 36**: `self.setData(self.options.data);`
-- **Line 37**: `}`
 - **Line 61**: `throw 'error: canvas context does not exist. setData() for bar charts must be called after the chart has been added to the screen via screen.append()';`
 - **Line 62**: `}`
 - **Line 168**: `return  {  barWidth: 1`
@@ -253,36 +285,12 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 - **Line 53**: `}`
 - **Line 79**: `throw 'error: canvas context does not exist. setData() for gauges must be called after the gauge has been added to the screen via screen.append()';`
 - **Line 80**: `}`
-- **Line 101**: `percent = percent * 100;`
-- **Line 102**: `}`
 - **Line 112**: `c.strokeStyle = 'normal';`
 - **Line 113**: `}`
 - **Line 121**: `return {percent: 10};`
 
 #### lib/widget/lcd.js
 
-- **Line 50**: `if (this.segment16){`
-- **Line 51**: `this.segment16.SegmentWidth+=0.01;`
-- **Line 52**: `}`
-- **Line 55**: `if (this.segment16){`
-- **Line 56**: `this.segment16.SegmentWidth-=0.01;`
-- **Line 57**: `}`
-- **Line 60**: `if (this.segment16){`
-- **Line 61**: `this.segment16.SegmentInterval+=0.01;`
-- **Line 62**: `}`
-- **Line 65**: `if (this.segment16){`
-- **Line 66**: `this.segment16.SegmentInterval-=0.01;`
-- **Line 67**: `}`
-- **Line 70**: `if (this.segment16){`
-- **Line 71**: `this.segment16.StrokeWidth+=0.05;`
-- **Line 72**: `}`
-- **Line 75**: `if (this.segment16){`
-- **Line 76**: `this.segment16.StrokeWidth-=0.05;`
-- **Line 77**: `}`
-- **Line 80**: `if (this.segment16){`
-- **Line 81**: `this.segment16.setOptions(options);`
-- **Line 82**: `}`
-- **Line 86**: `this.setDisplay(data.toString());`
 - **Line 90**: `return {`
 - **Line 91**: `label: 'LCD Test',`
 - **Line 92**: `segmentWidth: 0.06,`
@@ -303,31 +311,11 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 - **Line 145**: `}`
 - **Line 152**: `mask = this.NullMask;`
 - **Line 153**: `}`
-- **Line 209**: `if (options.elements)`
-- **Line 210**: `this.ElementArray.SetCount(options.elements);`
-- **Line 211**: ``
-- **Line 212**: `this.SegmentWidth = options.segmentWidth \|\| this.SegmentWidth;`
-- **Line 213**: `this.SegmentInterval = options.segmentInterval \|\| this.SegmentInterval;`
-- **Line 214**: `this.BevelWidth = 0.01;`
-- **Line 215**: `this.SideBevelEnabled = true;`
-- **Line 216**: `this.StrokeLight = options.color \|\| this.StrokeLight;`
-- **Line 217**: ``
-- **Line 218**: `this.StrokeWidth = options.strokeWidth \|\| this.StrokeWidth;`
-- **Line 219**: `this.Padding = options.elementPadding \|\| this.Padding;`
-- **Line 220**: `this.Spacing = options.elementSpacing \|\| this.Spacing;`
-- **Line 221**: ``
-- **Line 222**: `this.ElementWidth = (width - (this.Spacing*count))/count;`
-- **Line 223**: `this.ElementHeight = height - (this.Padding*2);`
-- **Line 224**: `}`
 
 #### lib/widget/log.js
 
-- **Line 23**: `this.logLines.push(str);`
-- **Line 24**: `if (this.logLines.length>this.options.bufferLength) {`
-- **Line 25**: `this.logLines.shift();`
-- **Line 26**: `}`
-- **Line 27**: `this.setItems(this.logLines);`
-- **Line 28**: `this.scrollTo(this.logLines.length);`
+- **Line 31**: `this.scrollTo(this.logLines.length);`
+- **Line 32**: `}`
 
 #### lib/widget/map.js
 
@@ -344,7 +332,6 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 - **Line 77**: `,{'lon' : '79.0000', 'lat' : '37.5000', color: 'blue', char: 'O' }`
 - **Line 78**: `]`
 - **Line 79**: `};`
-- **Line 83**: `this.innerMap.draw();`
 
 #### lib/widget/markdown.js
 
@@ -364,24 +351,27 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 
 #### lib/widget/picture.js
 
-- **Line 58**: ``
-- **Line 59**: `return { base64:'AAAA'`
-- **Line 60**: `, cols: 1 };`
+- **Line 33**: `options.stream.pipe(tube);`
 - **Line 61**: ``
+- **Line 62**: `return { base64:'AAAA'`
+- **Line 63**: `, cols: 1 };`
+- **Line 64**: ``
 
 #### lib/widget/sparkline.js
 
-- **Line 43**: `return { label: 'Sparkline'`
-- **Line 44**: `, tags: true`
-- **Line 45**: `, border: {type: 'line', fg: 'cyan'}`
-- **Line 46**: `, width: '50%'`
-- **Line 47**: `, height: '50%'`
-- **Line 48**: `, style: { fg: 'blue' }`
-- **Line 49**: `, data: { titles: [ 'Sparkline1', 'Sparkline2'],`
-- **Line 50**: `data: [ [10, 20, 30, 20, 50, 70, 60, 30, 35, 38]`
-- **Line 51**: `, [40, 10, 40, 50, 20, 30, 20, 20, 19, 40] ]`
-- **Line 52**: `}`
-- **Line 53**: `};`
+- **Line 39**: `res += titles[i]+':\r\n';`
+- **Line 40**: `}`
+- **Line 48**: `return { label: 'Sparkline'`
+- **Line 49**: `, tags: true`
+- **Line 50**: `, border: {type: 'line', fg: 'cyan'}`
+- **Line 51**: `, width: '50%'`
+- **Line 52**: `, height: '50%'`
+- **Line 53**: `, style: { fg: 'blue' }`
+- **Line 54**: `, data: { titles: [ 'Sparkline1', 'Sparkline2'],`
+- **Line 55**: `data: [ [10, 20, 30, 20, 50, 70, 60, 30, 35, 38]`
+- **Line 56**: `, [40, 10, 40, 50, 20, 30, 20, 20, 19, 40] ]`
+- **Line 57**: `}`
+- **Line 58**: `};`
 
 #### lib/widget/table.js
 
@@ -389,24 +379,42 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 - **Line 17**: `'Note: From release 2.0.0 use property columnWidth instead of columnSpacing.\r\n' +`
 - **Line 18**: `'Please refere to the README or to https://github.com/codemeasandwich/CliUI/issues/39';`
 - **Line 19**: `}`
-- **Line 22**: `throw 'Error: A table must get columnWidth as a property. Please refer to the README.';`
-- **Line 23**: `}`
-- **Line 95**: `spaceLength = 0;`
-- **Line 96**: `}`
-- **Line 114**: `return  { keys: true`
-- **Line 115**: `, fg: 'white'`
-- **Line 116**: `, interactive: false`
-- **Line 117**: `, label: 'Active Processes'`
-- **Line 118**: `, width: '30%'`
-- **Line 119**: `, height: '30%'`
-- **Line 120**: `, border: {type: 'line', fg: 'cyan'}`
-- **Line 121**: `, columnSpacing: 10`
-- **Line 122**: `, columnWidth: [16, 12]`
-- **Line 123**: `, data: { headers: ['col1', 'col2']`
-- **Line 124**: `, data: [ ['a', 'b']`
-- **Line 125**: `, ['5', 'u']`
-- **Line 126**: `, ['x', '16.1'] ]}`
-- **Line 127**: `};`
+- **Line 45**: `listStyle.focus = options.style.focus;`
+- **Line 46**: `}`
+- **Line 74**: `self.rows.select(0);`
+- **Line 75**: `self.screen.render();`
+- **Line 78**: `self.rows.select(self.rows.items.length - 1);`
+- **Line 79**: `self.screen.render();`
+- **Line 112**: `var numCols = table.headers ? table.headers.length : 0;`
+- **Line 113**: `for (var i = 0; i < numCols; i++) {`
+- **Line 114**: `var maxWidth = stripAnsi(table.headers[i].toString()).length;`
+- **Line 115**: `if (table.data) {`
+- **Line 116**: `table.data.forEach(function(row) {`
+- **Line 117**: `if (row[i]) {`
+- **Line 118**: `var cellWidth = stripAnsi(row[i].toString()).length;`
+- **Line 119**: `if (cellWidth > maxWidth) maxWidth = cellWidth;`
+- **Line 120**: `}`
+- **Line 121**: `});`
+- **Line 122**: `}`
+- **Line 123**: `calculatedColumnWidths[i] = maxWidth;`
+- **Line 124**: `}`
+- **Line 125**: `}`
+- **Line 166**: `spaceLength = 0;`
+- **Line 167**: `}`
+- **Line 185**: `return  { keys: true`
+- **Line 186**: `, fg: 'white'`
+- **Line 187**: `, interactive: false`
+- **Line 188**: `, label: 'Active Processes'`
+- **Line 189**: `, width: '30%'`
+- **Line 190**: `, height: '30%'`
+- **Line 191**: `, border: {type: 'line', fg: 'cyan'}`
+- **Line 192**: `, columnSpacing: 10`
+- **Line 193**: `, columnWidth: [16, 12]`
+- **Line 194**: `, data: { headers: ['col1', 'col2']`
+- **Line 195**: `, data: [ ['a', 'b']`
+- **Line 196**: `, ['5', 'u']`
+- **Line 197**: `, ['x', '16.1'] ]}`
+- **Line 198**: `};`
 
 #### lib/widget/tree.js
 
@@ -439,4 +447,4 @@ Files with 100% coverage across all metrics.
 
 ---
 
-*Generated: 2026-02-02T15:12:03.959Z*
+*Generated: 2026-02-02T17:16:08.776Z*
