@@ -168,6 +168,8 @@ declare namespace BlessedContrib {
         export class LineElement extends CanvasElement<LineData[]> implements IHasOptions<LineOptions> {
             constructor(opts: LineOptions);
 
+            setData(data: LineData[]): void;
+
             options: LineOptions;
         }
 
@@ -192,6 +194,8 @@ declare namespace BlessedContrib {
         export class StackedBarElement extends CanvasElement<StackedBarData[]> implements IHasOptions<StackedBarOptions> {
             constructor(opts: StackedBarOptions)
 
+            setData(data: StackedBarData): void;
+
             options: StackedBarOptions;
 
             addLegend(bars: any, x: number): void;
@@ -213,8 +217,7 @@ declare namespace BlessedContrib {
 
             calcSize(): void;
 
-            setData(data: D): void;
-            setData(titles: string[], data: D): void;
+            clear(): void;
 
             canvasSize: { width: number, height: number }
         }
@@ -240,6 +243,8 @@ declare namespace BlessedContrib {
 
         export class DonutElement extends CanvasElement<DonutData[]> implements IHasOptions<DonutOptions> {
             constructor(opts: DonutOptions)
+
+            setData(data: DonutData[]): void;
 
             options: DonutOptions;
 
@@ -331,11 +336,34 @@ declare namespace BlessedContrib {
         }
 
 
+        export interface MapMarker {
+            lon: string | number;
+            lat: string | number;
+            color?: string;
+            char?: string;
+        }
+
         export interface MapOptions extends CanvasOptions {
+            startLon?: number;
+            endLon?: number;
+            startLat?: number;
+            endLat?: number;
+            region?: string;
+            markers?: MapMarker[];
+            excludeAntarctica?: boolean;
+            disableBackground?: boolean;
+            disableMapBackground?: boolean;
+            disableGraticule?: boolean;
+            disableFill?: boolean;
+            labelSpace?: number;
         }
 
         export class MapElement extends CanvasElement implements IHasOptions<MapOptions> {
             constructor(opts: MapOptions)
+
+            addMarker(marker: MapMarker): void;
+
+            clearMarkers(): void;
 
             options: MapOptions;
         }
@@ -408,6 +436,12 @@ declare namespace BlessedContrib {
 
         export class TableElement extends CanvasElement<TableData> implements IHasOptions<TableOptions> {
             constructor(opts: TableOptions);
+
+            setData(data: TableData): void;
+
+            focus(): void;
+
+            rows: Blessed.Widgets.ListElement;
 
             options: TableOptions;
         }
