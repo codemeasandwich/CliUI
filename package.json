@@ -5,7 +5,9 @@
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
-    "test": "npm run lint",
+    "test": "node --experimental-test-coverage --test test/*.test.js",
+    "test:coverage": "node test/coverage-report.js",
+    "test:lint": "npm run lint",
     "lint": "eslint lib",
     "lint:fix": "eslint lib --fix"
   },
@@ -29,7 +31,7 @@
   "dependencies": {
     "ansi-term": ">=0.0.2",
     "chalk": "^1.1.0",
-    "TODO:drawille-canvas": ">=0.1.3",
+    "drawille-canvas-blessed-contrib": ">=0.1.3",
     "lodash": "~>=4.17.21",
     "map-canvas": ">=0.1.5",
     "marked": "^4.0.12",
