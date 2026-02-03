@@ -1,7 +1,7 @@
 // Sparkline without blessed tags (inline-data version)
 // Demonstrates sparkline with tags:false and inline data
 
-var blessed = require('blessed')
+var blessed = require('../../lib/blessed')
   , contrib = require('../../')
   , screen = blessed.screen()
 

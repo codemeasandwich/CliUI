@@ -1,7 +1,7 @@
 // Table with automatic column width calculation (inline-data version)
 // Demonstrates auto-calculated widths with data passed inline
 
-var blessed = require('blessed')
+var blessed = require('../../lib/blessed')
   , contrib = require('../../')
   , screen = blessed.screen()
 

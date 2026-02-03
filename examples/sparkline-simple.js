@@ -1,7 +1,7 @@
 // Sparkline without blessed tags
 // Demonstrates sparkline with tags:false for plain text output
 
-var blessed = require('blessed')
+var blessed = require('../lib/blessed')
   , contrib = require('../')
   , screen = blessed.screen()
 

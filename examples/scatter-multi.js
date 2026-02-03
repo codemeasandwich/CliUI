@@ -1,4 +1,4 @@
-var blessed = require('blessed')
+var blessed = require('../lib/blessed')
 , contrib = require('../index')
 , screen = blessed.screen()
 , scatter = contrib.scatter(

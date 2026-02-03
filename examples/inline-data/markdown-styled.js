@@ -1,7 +1,7 @@
 // Markdown with custom chalk styles (inline-data version)
 // Demonstrates markdownStyle with inline markdown content
 
-var blessed = require('blessed')
+var blessed = require('../../lib/blessed')
   , contrib = require('../../')
   , screen = blessed.screen()
 

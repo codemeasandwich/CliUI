@@ -2,7 +2,7 @@
 // Demonstrates getOptionsPrototype() for widgets
 // Useful for building widget configurators, documentation generators, or form builders
 
-var blessed = require('blessed')
+var blessed = require('../lib/blessed')
   , contrib = require('../')
   , screen = blessed.screen()
 

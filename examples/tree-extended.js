@@ -1,7 +1,7 @@
 // Tree with pre-extended nodes and tree lines
 // Demonstrates extended nodes with children showing the tree connector
 
-var blessed = require('blessed')
+var blessed = require('../lib/blessed')
   , contrib = require('../')
   , screen = blessed.screen()
 

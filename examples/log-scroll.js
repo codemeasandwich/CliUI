@@ -1,7 +1,7 @@
 // Log widget with manual scroll control
 // Demonstrates scrollTo method for programmatic scroll positioning
 
-var blessed = require('blessed')
+var blessed = require('../lib/blessed')
   , contrib = require('../')
   , screen = blessed.screen()
 

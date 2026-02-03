@@ -1,7 +1,7 @@
 // Markdown with custom chalk styles
 // Demonstrates markdownStyle option with string-based chalk color definitions
 
-var blessed = require('blessed')
+var blessed = require('../lib/blessed')
   , contrib = require('../')
   , screen = blessed.screen()
 

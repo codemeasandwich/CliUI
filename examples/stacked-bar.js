@@ -1,4 +1,4 @@
-var blessed = require('blessed')
+var blessed = require('../lib/blessed')
   , contrib = require('../')
   , screen = blessed.screen()
   // Use inline data in options to trigger attach-time setData (lines 36-37)

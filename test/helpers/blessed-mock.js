@@ -6,7 +6,7 @@
  * Based on patterns from lib/server-utils.js.
  */
 
-var blessed = require('blessed');
+var blessed = require('../../lib/blessed');
 
 /**
  * Mock output buffer that captures terminal output.

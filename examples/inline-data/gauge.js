@@ -1,4 +1,4 @@
-var blessed = require('blessed')
+var blessed = require('../../lib/blessed')
   , contrib = require('../../')
   , screen = blessed.screen()
   // Use stack option to trigger stack initialization path in attach handler

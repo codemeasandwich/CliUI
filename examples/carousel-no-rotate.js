@@ -2,7 +2,7 @@
 // This example demonstrates the carousel widget with rotate:false
 // When reaching boundaries, it stays at the current page instead of wrapping
 
-var blessed = require('blessed')
+var blessed = require('../lib/blessed')
   , contrib = require('../')
   , screen = blessed.screen()
 

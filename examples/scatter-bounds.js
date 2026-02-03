@@ -1,7 +1,7 @@
 // Scatter plot with explicit axis bounds
 // Demonstrates minX, maxX, minY, maxY options for fixed axis ranges
 
-var blessed = require('blessed')
+var blessed = require('../lib/blessed')
   , contrib = require('../')
   , screen = blessed.screen()
 

@@ -1,7 +1,7 @@
 // Server-side rendering utilities demonstration
 // Shows how to use server-utils for rendering blessed dashboards to HTTP responses
 
-var blessed = require('blessed')
+var blessed = require('../lib/blessed')
   , contrib = require('../')
   , screen = blessed.screen()  // Required for test harness
 

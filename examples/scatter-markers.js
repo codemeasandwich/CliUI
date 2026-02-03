@@ -1,7 +1,7 @@
 // Scatter plot with all marker types
 // Demonstrates the different marker styles available: 'o', '+', 'x', '*', '.'
 
-var blessed = require('blessed')
+var blessed = require('../lib/blessed')
   , contrib = require('../')
   , screen = blessed.screen()
 

@@ -1,4 +1,6 @@
 
+exports.blessed = require('./lib/blessed')
+
 exports.grid = require('./lib/layout/grid')
 exports.carousel = require('./lib/layout/carousel')
 

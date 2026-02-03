@@ -1,7 +1,7 @@
 // Table with automatic column width calculation
 // Demonstrates auto-calculated widths, focus styling, and long content handling
 
-var blessed = require('blessed')
+var blessed = require('../lib/blessed')
   , contrib = require('../')
   , screen = blessed.screen()
 

@@ -1,7 +1,7 @@
 // Tree with pre-extended nodes (inline-data version)
 // Demonstrates extended nodes with data passed inline
 
-var blessed = require('blessed')
+var blessed = require('../../lib/blessed')
   , contrib = require('../../')
   , screen = blessed.screen()
 

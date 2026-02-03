@@ -1,4 +1,4 @@
-var blessed = require('blessed')
+var blessed = require('../lib/blessed')
   , contrib = require('../index')
   , fs = require('fs')
   , path = require('path')
