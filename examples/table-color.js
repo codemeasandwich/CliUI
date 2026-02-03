@@ -1,7 +1,7 @@
 var blessed = require('../lib/blessed')
   , contrib = require('../')
   , screen = blessed.screen()
-  , colors = require('colors/safe');
+  , colors = require('../lib/colors');
 
 var table = contrib.table(
    { keys: true

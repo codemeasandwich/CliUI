@@ -7,9 +7,9 @@ Auto-generated coverage report from test suite.
 
 | Metric | Average |
 |--------|--------|
-| Lines | 93.93% |
-| Branches | 79.45% |
-| Functions | 91.04% |
+| Lines | 94.07% |
+| Branches | 78.67% |
+| Functions | 91.82% |
 
 ---
 
@@ -21,11 +21,11 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 |------|-------|----------|-----------|----------------|
 | [lib/](lib/)[layout/](lib/layout/)[carousel.js](lib/layout/carousel.js) | 91.78% | 93.75% | 87.50% | 37, 38, 64, 65, 66... (6 total) |
 | [lib/](lib/)[layout/](lib/layout/)[grid.js](lib/layout/grid.js) | 90.00% | 66.67% | 100.00% | 8, 18, 19, 20 |
-| [lib/](lib/)[utils.js](lib/utils.js) | 86.11% | 85.00% | 75.00% | 12, 13, 27, 28, 29... (10 total) |
+| [lib/](lib/)[utils.js](lib/utils.js) | 85.26% | 79.17% | 83.33% | 16, 17, 31, 32, 33... (14 total) |
 | [lib/](lib/)[widget/](lib/widget/)[canvas.js](lib/widget/canvas.js) | 94.12% | 75.00% | 80.00% | 12, 13, 36 |
-| [lib/](lib/)[widget/](lib/widget/)[charts/](lib/widget/charts/)[bar.js](lib/widget/charts/bar.js) | 90.53% | 61.90% | 80.00% | 44, 45, 84, 85, 86... (9 total) |
-| [lib/](lib/)[widget/](lib/widget/)[charts/](lib/widget/charts/)[line.js](lib/widget/charts/line.js) | 89.05% | 90.77% | 92.31% | 39, 40, 152, 245, 246... (30 total) |
-| [lib/](lib/)[widget/](lib/widget/)[charts/](lib/widget/charts/)[scatter.js](lib/widget/charts/scatter.js) | 98.75% | 77.01% | 100.00% | 40, 41, 184, 185 |
+| [lib/](lib/)[widget/](lib/widget/)[charts/](lib/widget/charts/)[bar.js](lib/widget/charts/bar.js) | 88.42% | 55.00% | 80.00% | 44, 45, 64, 65, 84... (11 total) |
+| [lib/](lib/)[widget/](lib/widget/)[charts/](lib/widget/charts/)[line.js](lib/widget/charts/line.js) | 89.01% | 90.77% | 92.31% | 38, 39, 151, 244, 245... (30 total) |
+| [lib/](lib/)[widget/](lib/widget/)[charts/](lib/widget/charts/)[scatter.js](lib/widget/charts/scatter.js) | 98.75% | 77.01% | 100.00% | 39, 40, 183, 184 |
 | [lib/](lib/)[widget/](lib/widget/)[charts/](lib/widget/charts/)[stacked-bar.js](lib/widget/charts/stacked-bar.js) | 94.47% | 63.89% | 90.91% | 61, 62, 168, 169, 170... (12 total) |
 | [lib/](lib/)[widget/](lib/widget/)[donut.js](lib/widget/donut.js) | 91.95% | 88.24% | 90.00% | 51, 52, 137, 138, 139... (12 total) |
 | [lib/](lib/)[widget/](lib/widget/)[gauge-list.js](lib/widget/gauge-list.js) | 93.40% | 66.67% | 85.71% | 45, 46, 77, 78, 94... (7 total) |
@@ -34,7 +34,7 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 | [lib/](lib/)[widget/](lib/widget/)[log.js](lib/widget/log.js) | 94.59% | 75.00% | 100.00% | 31, 32 |
 | [lib/](lib/)[widget/](lib/widget/)[map.js](lib/widget/map.js) | 84.88% | 60.00% | 83.33% | 62, 63, 69, 70, 71... (13 total) |
 | [lib/](lib/)[widget/](lib/widget/)[picture.js](lib/widget/picture.js) | 92.75% | 69.23% | 80.00% | 33, 61, 62, 63, 64 |
-| [lib/](lib/)[widget/](lib/widget/)[table.js](lib/widget/table.js) | 94.09% | 78.26% | 87.50% | 16, 17, 18, 19, 45... (12 total) |
+| [lib/](lib/)[widget/](lib/widget/)[table.js](lib/widget/table.js) | 94.12% | 78.26% | 87.50% | 17, 18, 19, 20, 46... (12 total) |
 | [lib/](lib/)[widget/](lib/widget/)[tree.js](lib/widget/tree.js) | 95.29% | 84.62% | 83.33% | 49, 50, 51, 52, 53... (8 total) |
 
 ### Uncovered Line Details
@@ -57,16 +57,20 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 
 #### lib/utils.js
 
-- **Line 12**: `return obj1;`
-- **Line 13**: `}`
-- **Line 27**: `// property in destination object not set; create it and set its value`
-- **Line 28**: `obj1[p] = obj2[p];`
-- **Line 29**: ``
-- **Line 30**: `}`
-- **Line 37**: `function getTypeName(thing){`
-- **Line 38**: `if(thing===null)return '[object Null]'; // special case`
-- **Line 39**: `return Object.prototype.toString.call(thing);`
-- **Line 40**: `}`
+- **Line 16**: `return obj1;`
+- **Line 17**: `}`
+- **Line 31**: `// property in destination object not set; create it and set its value`
+- **Line 32**: `obj1[p] = obj2[p];`
+- **Line 33**: ``
+- **Line 34**: `}`
+- **Line 41**: `function getTypeName(thing){`
+- **Line 42**: `if(thing===null)return '[object Null]'; // special case`
+- **Line 43**: `return Object.prototype.toString.call(thing);`
+- **Line 44**: `}`
+- **Line 68**: `if (r < 8) return 16;`
+- **Line 69**: `if (r > 248) return 231;`
+- **Line 70**: `return Math.round((r - 8) / 247 * 24) + 232;`
+- **Line 71**: `}`
 
 #### lib/widget/canvas.js
 
@@ -78,6 +82,8 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 
 - **Line 44**: `throw 'error: canvas context does not exist. setData() for bar charts must be called after the chart has been added to the screen via screen.append()';`
 - **Line 45**: `}`
+- **Line 64**: `c.strokeStyle = 'normal';`
+- **Line 65**: `}`
 - **Line 84**: `return  {  barWidth: 1`
 - **Line 85**: `,  barSpacing: 1`
 - **Line 86**: `,  xOffset: 1`
@@ -88,43 +94,43 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 
 #### lib/widget/charts/line.js
 
-- **Line 39**: `throw 'error: canvas context does not exist. setData() for line charts must be called after the chart has been added to the screen via screen.append()';`
-- **Line 40**: `}`
-- **Line 152**: `// console.log("label[" + i + "] is undefined");`
-- **Line 245**: `return { width: 80`
-- **Line 246**: `, height: 30`
-- **Line 247**: `, left: 15`
-- **Line 248**: `, top: 12`
-- **Line 249**: `, xPadding: 5`
-- **Line 250**: `, label: 'Title'`
-- **Line 251**: `, showLegend: true`
-- **Line 252**: `, legend: {width: 12}`
-- **Line 253**: `, data: [ { title: 'us-east',`
-- **Line 254**: `x: ['t1', 't2', 't3', 't4'],`
-- **Line 255**: `y: [5, 1, 7, 5],`
-- **Line 256**: `style: {`
-- **Line 257**: `line: 'red'`
+- **Line 38**: `throw 'error: canvas context does not exist. setData() for line charts must be called after the chart has been added to the screen via screen.append()';`
+- **Line 39**: `}`
+- **Line 151**: `// console.log("label[" + i + "] is undefined");`
+- **Line 244**: `return { width: 80`
+- **Line 245**: `, height: 30`
+- **Line 246**: `, left: 15`
+- **Line 247**: `, top: 12`
+- **Line 248**: `, xPadding: 5`
+- **Line 249**: `, label: 'Title'`
+- **Line 250**: `, showLegend: true`
+- **Line 251**: `, legend: {width: 12}`
+- **Line 252**: `, data: [ { title: 'us-east',`
+- **Line 253**: `x: ['t1', 't2', 't3', 't4'],`
+- **Line 254**: `y: [5, 1, 7, 5],`
+- **Line 255**: `style: {`
+- **Line 256**: `line: 'red'`
+- **Line 257**: `}`
 - **Line 258**: `}`
-- **Line 259**: `}`
-- **Line 260**: `, { title: 'us-west',`
-- **Line 261**: `x: ['t1', 't2', 't3', 't4'],`
-- **Line 262**: `y: [2, 4, 9, 8],`
-- **Line 263**: `style: {line: 'yellow'}`
-- **Line 264**: `}`
-- **Line 265**: `, {title: 'eu-north-with-some-long-string',`
-- **Line 266**: `x: ['t1', 't2', 't3', 't4'],`
-- **Line 267**: `y: [22, 7, 12, 1],`
-- **Line 268**: `style: {line: 'blue'}`
-- **Line 269**: `}]`
-- **Line 270**: ``
-- **Line 271**: `};`
+- **Line 259**: `, { title: 'us-west',`
+- **Line 260**: `x: ['t1', 't2', 't3', 't4'],`
+- **Line 261**: `y: [2, 4, 9, 8],`
+- **Line 262**: `style: {line: 'yellow'}`
+- **Line 263**: `}`
+- **Line 264**: `, {title: 'eu-north-with-some-long-string',`
+- **Line 265**: `x: ['t1', 't2', 't3', 't4'],`
+- **Line 266**: `y: [22, 7, 12, 1],`
+- **Line 267**: `style: {line: 'blue'}`
+- **Line 268**: `}]`
+- **Line 269**: ``
+- **Line 270**: `};`
 
 #### lib/widget/charts/scatter.js
 
-- **Line 40**: `throw 'error: canvas context does not exist. setData() for scatter plots must be called after the chart has been added to the screen via screen.append()';`
-- **Line 41**: `}`
-- **Line 184**: `xPadding = xLabelPadding;`
-- **Line 185**: `}`
+- **Line 39**: `throw 'error: canvas context does not exist. setData() for scatter plots must be called after the chart has been added to the screen via screen.append()';`
+- **Line 40**: `}`
+- **Line 183**: `xPadding = xLabelPadding;`
+- **Line 184**: `}`
 
 #### lib/widget/charts/stacked-bar.js
 
@@ -229,18 +235,18 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 
 #### lib/widget/table.js
 
-- **Line 16**: `throw 'Error: columnSpacing cannot be an array.\r\n' +`
-- **Line 17**: `'Note: From release 2.0.0 use property columnWidth instead of columnSpacing.\r\n' +`
-- **Line 18**: `'Please refere to the README or to https://github.com/codemeasandwich/CliUI/issues/39';`
-- **Line 19**: `}`
-- **Line 45**: `listStyle.focus = options.style.focus;`
-- **Line 46**: `}`
-- **Line 74**: `self.rows.select(0);`
-- **Line 75**: `self.screen.render();`
-- **Line 78**: `self.rows.select(self.rows.items.length - 1);`
-- **Line 79**: `self.screen.render();`
-- **Line 166**: `spaceLength = 0;`
-- **Line 167**: `}`
+- **Line 17**: `throw 'Error: columnSpacing cannot be an array.\r\n' +`
+- **Line 18**: `'Note: From release 2.0.0 use property columnWidth instead of columnSpacing.\r\n' +`
+- **Line 19**: `'Please refere to the README or to https://github.com/codemeasandwich/CliUI/issues/39';`
+- **Line 20**: `}`
+- **Line 46**: `listStyle.focus = options.style.focus;`
+- **Line 47**: `}`
+- **Line 75**: `self.rows.select(0);`
+- **Line 76**: `self.screen.render();`
+- **Line 79**: `self.rows.select(self.rows.items.length - 1);`
+- **Line 80**: `self.screen.render();`
+- **Line 167**: `spaceLength = 0;`
+- **Line 168**: `}`
 
 #### lib/widget/tree.js
 
@@ -261,12 +267,14 @@ Files with 100% line coverage but missing branch or function coverage.
 
 | File | Lines | Branches | Functions |
 |------|-------|----------|----------|
+| [lib/](lib/)[colors.js](lib/colors.js) | 100.00% | 75.00% | 100.00% |
 | [lib/](lib/)[server-utils.js](lib/server-utils.js) | 100.00% | 89.47% | 100.00% |
 | [lib/](lib/)[widget/](lib/widget/)[markdown.js](lib/widget/markdown.js) | 100.00% | 92.86% | 100.00% |
 | [lib/](lib/)[widget/](lib/widget/)[sparkline.js](lib/widget/sparkline.js) | 100.00% | 85.71% | 100.00% |
 
 ### Details
 
+- **lib/colors.js**: Branch coverage: 75.00%
 - **lib/server-utils.js**: Branch coverage: 89.47%
 - **lib/widget/markdown.js**: Branch coverage: 92.86%
 - **lib/widget/sparkline.js**: Branch coverage: 85.71%
@@ -283,4 +291,4 @@ Files with 100% coverage across all metrics.
 
 ---
 
-*Generated: 2026-02-02T23:55:32.213Z*
+*Generated: 2026-02-03T02:02:53.700Z*
