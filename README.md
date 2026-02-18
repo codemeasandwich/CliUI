@@ -35,18 +35,19 @@ Works on Linux, OS X and Windows. For Windows follow the [pre requisites](http:/
 
 ## Quick Start
 
+**CommonJS**
 `````javascript
-var galactica = require('galactica')
-  , screen = galactica.screen()
-  , grid = new galactica.grid({rows: 1, cols: 2, screen: screen})
+const galactica = require('galactica')
+const screen = galactica.screen()
+const grid = new galactica.grid({rows: 1, cols: 2, screen: screen})
 
-var line = grid.set(0, 0, 1, 1, galactica.line,
+const line = grid.set(0, 0, 1, 1, galactica.line,
   { style: { line: "yellow", text: "green", baseline: "black" }
   , xLabelPadding: 3
   , xPadding: 5
   , label: 'Stocks'})
 
-var map = grid.set(0, 1, 1, 1, galactica.map, {label: 'Servers Location'})
+const map = grid.set(0, 1, 1, 1, galactica.map, {label: 'Servers Location'})
 
 line.setData([{ x: ['t1', 't2', 't3', 't4'], y: [5, 1, 7, 5] }])
 
@@ -55,6 +56,28 @@ screen.key(['escape', 'q', 'C-c'], function(ch, key) {
 })
 
 screen.render()
+`````
+
+**ES Modules**
+`````javascript
+import { screen, grid, line, map } from 'galactica'
+
+const scr = screen()
+const grd = new grid({rows: 1, cols: 2, screen: scr})
+
+const lineChart = grd.set(0, 0, 1, 1, line,
+  { style: { line: "yellow", text: "green", baseline: "black" }
+  , xLabelPadding: 3
+  , xPadding: 5
+  , label: 'Stocks'})
+
+const worldMap = grd.set(0, 1, 1, 1, map, {label: 'Servers Location'})
+
+lineChart.setData([{ x: ['t1', 't2', 't3', 't4'], y: [5, 1, 7, 5] }])
+
+scr.key(['escape', 'q', 'C-c'], () => process.exit(0))
+
+scr.render()
 `````
 
 ## Documentation
