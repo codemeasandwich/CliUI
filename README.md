@@ -1,10 +1,8 @@
-## Cli UI
+## Galactica
 
 Build dashboards (or any other application) using ascii/ansi art and javascript.
 
-Friendly to terminals, ssh and developers. Extends [blessed](https://github.com/chjj/blessed) with custom  [drawille](https://github.com/madbence/node-drawille) and other widgets.
-
-You should also [check WOPR](https://github.com/yaronn/wopr): a markup for creating terminal reports, presentations and infographics.
+Friendly to terminals, ssh and developers. Features custom drawille rendering and powerful layout widgets.
 
 
 **Maintained by [Brian Shannon](https://www.linkedin.com/in/brianshann/)**
@@ -29,17 +27,16 @@ Works on Linux, OS X and Windows. For Windows follow the [pre requisites](http:/
 
 ## Installation (to build custom projects)
 
-    npm install blessed cli-ui
+    npm install galactica
 
 ## Usage
 
-You can use any of the default widgets of [blessed](https://github.com/chjj/blessed) (texts, lists and etc) or the widgets added in Cli UI (described below). A [layout](#layouts) is optional but useful for dashboards. The widgets in Cli UI follow the same usage pattern:
+Galactica provides a rich set of widgets (texts, lists, charts, gauges and more). A [layout](#layouts) is optional but useful for dashboards. All widgets follow the same usage pattern:
 
 `````javascript
-   var blessed = require('blessed')
-     , contrib = require('cli-ui')
-     , screen = blessed.screen()
-     , line = contrib.line(
+   var galactica = require('galactica')
+     , screen = galactica.screen()
+     , line = galactica.line(
          { style:
            { line: "yellow"
            , text: "green"
@@ -55,8 +52,8 @@ You can use any of the default widgets of [blessed](https://github.com/chjj/bles
    line.setData([data])
 
    screen.key(['escape', 'q', 'C-c'], function(ch, key) {
-     return process.exit(0);
-   });
+     return process.exit(0)
+   })
 
    screen.render()
 `````
@@ -101,7 +98,7 @@ See below for a complete list of widgets.
 <img src="./docs/images/line.gif" alt="line" width="400">
 
 `````javascript
-   var line = contrib.line(
+   var line = galactica.line(
          { style:
            { line: "yellow"
            , text: "green"
@@ -130,7 +127,7 @@ See below for a complete list of widgets.
 ### Scatter Plot
 
 `````javascript
-   var scatter = contrib.scatter(
+   var scatter = galactica.scatter(
          { style:
            { point: "yellow"
            , text: "green"
@@ -167,7 +164,7 @@ Unlike line charts which use categorical X labels, scatter plots use numeric X v
 <img src="./docs/images/bar.gif" alt="bar" width="250">
 
 `````javascript
-    var bar = contrib.bar(
+    var bar = galactica.bar(
        { label: 'Server Utilization (%)'
        , barWidth: 4
        , barSpacing: 6
@@ -184,7 +181,7 @@ Unlike line charts which use categorical X labels, scatter plots use numeric X v
 <img src="./docs/images/stacked-bar.png" alt="stacked-bar" width="250">
 
 `````javascript
-    bar = contrib.stackedBar(
+    bar = galactica.stackedBar(
        { label: 'Server Utilization (%)'
        , barWidth: 4
        , barSpacing: 6
@@ -210,7 +207,7 @@ Unlike line charts which use categorical X labels, scatter plots use numeric X v
 <img src="./docs/images/map.gif" alt="map" width="500">
 
 `````javascript
-   var map = contrib.map({label: 'World Map'})
+   var map = galactica.map({label: 'World Map'})
    map.addMarker({"lon" : "-79.0000", "lat" : "37.5000", color: "red", char: "X" })
 `````
 
@@ -220,7 +217,7 @@ Unlike line charts which use categorical X labels, scatter plots use numeric X v
 <img src="./docs/images/gauge.gif" alt="gauge" width="170">
 
 `````javascript
-   var gauge = contrib.gauge({label: 'Progress', stroke: 'green', fill: 'white'})
+   var gauge = galactica.gauge({label: 'Progress', stroke: 'green', fill: 'white'})
    gauge.setPercent(25)
 `````
 
@@ -231,14 +228,14 @@ Unlike line charts which use categorical X labels, scatter plots use numeric X v
 Either specify each stacked portion with a `percent` and `stroke`...
 
 `````javascript
-   var gauge = contrib.gauge({label: 'Stacked '})
+   var gauge = galactica.gauge({label: 'Stacked '})
    gauge.setStack([{percent: 30, stroke: 'green'}, {percent: 30, stroke: 'magenta'}, {percent: 40, stroke: 'cyan'}])
 `````
 
 Or, you can just supply an array of numbers and random colors will be chosen.
 
 `````javascript
-   var gauge = contrib.gauge({label: 'Stacked Progress'})
+   var gauge = galactica.gauge({label: 'Stacked Progress'})
    gauge.setStack([30,30,40])
 `````
 
@@ -248,7 +245,7 @@ Or, you can just supply an array of numbers and random colors will be chosen.
 
 
 `````javascript
-   var donut = contrib.donut({
+   var donut = galactica.donut({
 	label: 'Test',
 	radius: 8,
 	arcWidth: 3,
@@ -274,7 +271,7 @@ Updating the donut is as easy as passing in an array to `setData` using the same
 You can also hardcode a specific numeric into the donut's core display instead of the percentage by passing an `percentAltNumber` property to the data, such as:
 
 `````javascript
-   var donut = contrib.donut({
+   var donut = galactica.donut({
 	label: 'Test',
 	radius: 8,
 	arcWidth: 3,
@@ -293,7 +290,7 @@ See an example of this in one of the donuts settings on `./examples/donut.js`.
 <img src="./docs/images/lcd.gif" alt="lcd">
 
 `````javascript
-   var lcd = contrib.lcd(
+   var lcd = galactica.lcd(
      { segmentWidth: 0.06 // how wide are the segments in % so 50% = 0.5
      , segmentInterval: 0.11 // spacing between the segments in % so 50% = 0.550% = 0.5
      , strokeWidth: 0.11 // spacing between the segments in % so 50% = 0.5
@@ -320,7 +317,7 @@ Please see the **examples/lcd.js** for an example. The example provides keybindi
 <img src="./docs/images/log.gif" alt="log" width="180">
 
 `````javascript
-   var log = contrib.log(
+   var log = galactica.log(
       { fg: "green"
       , selectedFg: "green"
       , label: 'Server Log'})
@@ -330,12 +327,12 @@ Please see the **examples/lcd.js** for an example. The example provides keybindi
 
 ### Picture
 
-(Also check the new blessed [image implementation](https://github.com/chjj/blessed#image-from-box) which has several benefits over this one.)
+(Also check the built-in image widget which has several benefits over this one.)
 
 <img src="./docs/images/picture.png" alt="log" width="180">
 
 `````javascript
-    var pic = contrib.picture(
+    var pic = galactica.picture(
        { file: './flower.png'
        , cols: 25
        , onReady: ready})
@@ -350,7 +347,7 @@ note: only png images are supported
 <img src="./docs/images/spark.gif" alt="spark" width="180">
 
 `````javascript
-   var spark = contrib.sparkline(
+   var spark = galactica.sparkline(
      { label: 'Throughput (bits/sec)'
      , tags: true
      , style: { fg: 'blue' }})
@@ -366,7 +363,7 @@ note: only png images are supported
 <img src="./docs/images/table.gif" alt="table" width="250">
 
 `````javascript
-   var table = contrib.table(
+   var table = galactica.table(
      { keys: true
      , fg: 'white'
      , selectedFg: 'white'
@@ -396,7 +393,7 @@ note: only png images are supported
 <img src="./docs/images/tree.gif" alt="table" width="250">
 
 `````javascript
-   var tree = contrib.tree({fg: 'green'})
+   var tree = galactica.tree({fg: 'green'})
 
    //allow control the table with the keyboard
    tree.focus()
@@ -477,8 +474,8 @@ Every node is a hash and it can have custom properties that can be used in "sele
 <img src="./docs/images/markdown.png" alt="table">
 
 `````javascript
-   var markdown = contrib.markdown()
-   markdown.setMarkdown('# Hello \n Cli UI renders markdown using `marked-terminal`')
+   var markdown = galactica.markdown()
+   markdown.setMarkdown('# Hello \n Galactica renders markdown using `marked-terminal`')
 `````
 
 ### Colors
@@ -489,7 +486,7 @@ You can use 256 colors ([source](./examples/line-random-colors.js)):
     return [Math.random() * 255,Math.random()*255, Math.random()*255]
   }
 
-  line = contrib.line(
+  line = galactica.line(
   {
     ...
     , style: { line: randomColor(), text: randomColor(), baseline: randomColor() }
@@ -509,13 +506,13 @@ When using a grid, you should not create the widgets, rather specify to the grid
 Each widget can span multiple rows and columns.
 
 `````javascript
-   var screen = blessed.screen()
+   var screen = galactica.screen()
 
-   var grid = new contrib.grid({rows: 12, cols: 12, screen: screen})
+   var grid = new galactica.grid({rows: 12, cols: 12, screen: screen})
 
    //grid.set(row, col, rowSpan, colSpan, obj, opts)
-   var map = grid.set(0, 0, 4, 4, contrib.map, {label: 'World Map'})
-   var box = grid.set(4, 4, 4, 4, blessed.box, {content: 'My Box'})
+   var map = grid.set(0, 0, 4, 4, galactica.map, {label: 'World Map'})
+   var box = grid.set(4, 4, 4, 4, galactica.box, {content: 'My Box'})
 
    screen.render()
 `````
@@ -525,17 +522,16 @@ A carousel layout switches between different views based on time or keyboard act
 One use case is an office dashboard with rotating views:
 
 `````javascript
-    var blessed = require('blessed')
-      , contrib = require('./')
-      , screen = blessed.screen()
+    var galactica = require('galactica')
+      , screen = galactica.screen()
 
     function page1(screen) {
-       var map = contrib.map()
+       var map = galactica.map()
        screen.append(map)
     }
 
     function page2(screen) {
-      var line = contrib.line(
+      var line = galactica.line(
        { width: 80
        , height: 30
        , left: 15
@@ -561,7 +557,7 @@ One use case is an office dashboard with rotating views:
       return process.exit(0);
     });
 
-    var carousel = new contrib.carousel( [page1, page2]
+    var carousel = new galactica.carousel( [page1, page2]
                                        , { screen: screen
                                          , interval: 3000 //how often to switch views (set 0 to never swicth automatically)
                                          , controlKeys: true  //should right and left keyboard arrows control view rotation
@@ -586,19 +582,17 @@ One use case is an office dashboard with rotating views:
 
 **Installation (for a custom dashboard)**
 
-    npm install blessed
-    npm install cli-ui
+    npm install galactica
 
 
 **A simple dashboard**
 
 `````javascript
-   var blessed = require('blessed')
-     , contrib = require('cli-ui')
-     , screen = blessed.screen()
-     , grid = new contrib.grid({rows: 1, cols: 2, screen: screen})
+   var galactica = require('galactica')
+     , screen = galactica.screen()
+     , grid = new galactica.grid({rows: 1, cols: 2, screen: screen})
 
-   var line = grid.set(0, 0, 1, 1, contrib.line,
+   var line = grid.set(0, 0, 1, 1, galactica.line,
      { style:
        { line: "yellow"
        , text: "green"
@@ -607,7 +601,7 @@ One use case is an office dashboard with rotating views:
      , xPadding: 5
      , label: 'Stocks'})
 
-   var map = grid.set(0, 1, 1, 1, contrib.map, {label: 'Servers Location'})
+   var map = grid.set(0, 1, 1, 1, galactica.map, {label: 'Servers Location'})
 
    var lineData = {
       x: ['t1', 't2', 't3', 't4'],
@@ -617,8 +611,8 @@ One use case is an office dashboard with rotating views:
    line.setData([lineData])
 
    screen.key(['escape', 'q', 'C-c'], function(ch, key) {
-     return process.exit(0);
-   });
+     return process.exit(0)
+   })
 
    screen.render()
 `````

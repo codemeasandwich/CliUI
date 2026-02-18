@@ -7,9 +7,9 @@ Auto-generated coverage report from test suite.
 
 | Metric | Average |
 |--------|--------|
-| Lines | 94.07% |
-| Branches | 78.67% |
-| Functions | 91.82% |
+| Lines | 94.08% |
+| Branches | 78.06% |
+| Functions | 92.50% |
 
 ---
 
@@ -22,6 +22,7 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 | [lib/](lib/)[layout/](lib/layout/)[carousel.js](lib/layout/carousel.js) | 91.78% | 93.75% | 87.50% | 37, 38, 64, 65, 66... (6 total) |
 | [lib/](lib/)[layout/](lib/layout/)[grid.js](lib/layout/grid.js) | 90.00% | 66.67% | 100.00% | 8, 18, 19, 20 |
 | [lib/](lib/)[utils.js](lib/utils.js) | 85.26% | 79.17% | 83.33% | 16, 17, 31, 32, 33... (14 total) |
+| [lib/](lib/)[utils/](lib/utils/)[sparkline.js](lib/utils/sparkline.js) | 88.57% | 42.86% | 100.00% | 15, 16, 28, 29 |
 | [lib/](lib/)[widget/](lib/widget/)[canvas.js](lib/widget/canvas.js) | 94.12% | 75.00% | 80.00% | 12, 13, 36 |
 | [lib/](lib/)[widget/](lib/widget/)[charts/](lib/widget/charts/)[bar.js](lib/widget/charts/bar.js) | 88.42% | 55.00% | 80.00% | 44, 45, 64, 65, 84... (11 total) |
 | [lib/](lib/)[widget/](lib/widget/)[charts/](lib/widget/charts/)[line.js](lib/widget/charts/line.js) | 89.01% | 90.77% | 92.31% | 38, 39, 151, 244, 245... (30 total) |
@@ -33,7 +34,7 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 | [lib/](lib/)[widget/](lib/widget/)[lcd.js](lib/widget/lcd.js) | 95.57% | 77.27% | 96.15% | 90, 91, 92, 93, 94... (20 total) |
 | [lib/](lib/)[widget/](lib/widget/)[log.js](lib/widget/log.js) | 94.59% | 75.00% | 100.00% | 31, 32 |
 | [lib/](lib/)[widget/](lib/widget/)[map.js](lib/widget/map.js) | 84.88% | 60.00% | 83.33% | 62, 63, 69, 70, 71... (13 total) |
-| [lib/](lib/)[widget/](lib/widget/)[picture.js](lib/widget/picture.js) | 92.75% | 69.23% | 80.00% | 33, 61, 62, 63, 64 |
+| [lib/](lib/)[widget/](lib/widget/)[picture.js](lib/widget/picture.js) | 92.65% | 69.23% | 80.00% | 32, 60, 61, 62, 63 |
 | [lib/](lib/)[widget/](lib/widget/)[table.js](lib/widget/table.js) | 94.12% | 78.26% | 87.50% | 17, 18, 19, 20, 46... (12 total) |
 | [lib/](lib/)[widget/](lib/widget/)[tree.js](lib/widget/tree.js) | 95.29% | 84.62% | 83.33% | 49, 50, 51, 52, 53... (8 total) |
 
@@ -71,6 +72,13 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 - **Line 69**: `if (r > 248) return 231;`
 - **Line 70**: `return Math.round((r - 8) / 247 * 24) + 232;`
 - **Line 71**: `}`
+
+#### lib/utils/sparkline.js
+
+- **Line 15**: `return '';`
+- **Line 16**: `}`
+- **Line 28**: `return ticks[0];`
+- **Line 29**: `}`
 
 #### lib/widget/canvas.js
 
@@ -227,11 +235,11 @@ Files with less than 100% line coverage. Each uncovered line is listed below the
 
 #### lib/widget/picture.js
 
-- **Line 33**: `options.stream.pipe(tube);`
-- **Line 61**: ``
-- **Line 62**: `return { base64:'AAAA'`
-- **Line 63**: `, cols: 1 };`
-- **Line 64**: ``
+- **Line 32**: `options.stream.pipe(tube);`
+- **Line 60**: ``
+- **Line 61**: `return { base64:'AAAA'`
+- **Line 62**: `, cols: 1 };`
+- **Line 63**: ``
 
 #### lib/widget/table.js
 
@@ -288,7 +296,8 @@ Files with 100% coverage across all metrics.
 | File | Lines | Branches | Functions |
 |------|-------|----------|----------|
 | [lib/](lib/)[blessed.js](lib/blessed.js) | 100.00% | 100.00% | 100.00% |
+| [lib/](lib/)[utils/](lib/utils/)[memory-stream.js](lib/utils/memory-stream.js) | 100.00% | 100.00% | 100.00% |
 
 ---
 
-*Generated: 2026-02-03T02:02:53.700Z*
+*Generated: 2026-02-03T02:11:37.517Z*

@@ -1,13 +1,26 @@
 {
-  "name": "cli-ui",
-  "version": "4.11.0",
-  "description": "",
+  "name": "galactica",
+  "version": "1.0.0",
+  "description": "Build terminal dashboards using ascii/ansi art and javascript",
+  "keywords": [
+    "terminal",
+    "dashboard",
+    "cli",
+    "ascii",
+    "ansi",
+    "tui",
+    "console",
+    "charts",
+    "widgets",
+    "blessed"
+  ],
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
     "test": "node --experimental-test-coverage --test test/*.test.js",
     "test:coverage": "node test/coverage-report.js",
     "test:lint": "npm run lint",
+    "release": "bash scripts/publish.sh",
     "lint": "eslint lib",
     "lint:fix": "eslint lib --fix"
   },
@@ -15,7 +28,7 @@
     "type": "git",
     "url": "https://github.com/codemeasandwich/CliUI.git"
   },
-  "author": "Brian Shannon",
+  "author": "Brian Shannon (https://www.linkedin.com/in/brianshann/)",
   "license": "MIT",
   "devDependencies": {
     "@types/blessed": "^0.1.6",
