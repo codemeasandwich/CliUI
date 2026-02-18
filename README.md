@@ -1,5 +1,9 @@
 ## Galactica
 
+[![npm version](https://img.shields.io/npm/v/galactica.svg)](https://www.npmjs.com/package/galactica)
+[![npm downloads](https://img.shields.io/npm/dm/galactica.svg)](https://www.npmjs.com/package/galactica)
+[![license](https://img.shields.io/npm/l/galactica.svg)](https://opensource.org/licenses/MIT)
+
 Build dashboards (or any other application) using ascii/ansi art and javascript.
 
 Friendly to terminals, ssh and developers. Features custom drawille rendering and powerful layout widgets.
