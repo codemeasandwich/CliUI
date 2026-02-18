@@ -1,11 +1,10 @@
 // Scatter plot with all marker types
 // Demonstrates the different marker styles available: 'o', '+', 'x', '*', '.'
 
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
+var galactica = require('../')
+  , screen = galactica.screen()
 
-var scatter = contrib.scatter({
+var scatter = galactica.scatter({
   label: 'Scatter Plot - All Marker Types',
   left: 0,
   top: 0,

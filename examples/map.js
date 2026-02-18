@@ -1,7 +1,6 @@
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
-  , map = contrib.map({label: 'World Map'})
+var galactica = require('../')
+  , screen = galactica.screen()
+  , map = galactica.map({label: 'World Map'})
 
 screen.append(map)
 

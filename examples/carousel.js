@@ -1,11 +1,10 @@
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
+var galactica = require('../')
+  , screen = galactica.screen()
 
 function page1(screen) {  
-   var grid = new contrib.grid({rows: 4, cols: 4, screen: screen})
+   var grid = new galactica.grid({rows: 4, cols: 4, screen: screen})
 
-   var line = grid.set(1, 0, 2, 2, contrib.line, 
+   var line = grid.set(1, 0, 2, 2, galactica.line, 
      { style: 
        { line: "yellow"
        , text: "green"
@@ -14,9 +13,9 @@ function page1(screen) {
      , xPadding: 5
      , label: 'Stocks'})
 
-   var map = grid.set(1, 2, 2, 2, contrib.map, {label: 'Servers Location'})
+   var map = grid.set(1, 2, 2, 2, galactica.map, {label: 'Servers Location'})
 
-   var box = blessed.box({content: 'click right-left arrows or wait 3 seconds for the next layout in the carousel', top: '80%', left: '10%'})
+   var box = galactica.box({content: 'click right-left arrows or wait 3 seconds for the next layout in the carousel', top: '80%', left: '10%'})
    screen.append(box)
 
    var lineData = {
@@ -28,7 +27,7 @@ function page1(screen) {
 }
 
 function page2(screen) {  
-  var line = contrib.line(
+  var line = galactica.line(
    { width: 80
    , height: 30
    , left: 15
@@ -49,7 +48,7 @@ function page2(screen) {
   screen.append(line)
   line.setData(data)
 
-  var box = blessed.box({content: 'click right-left arrows or wait 3 seconds for the next layout in the carousel', top: '80%', left: '10%'})
+  var box = galactica.box({content: 'click right-left arrows or wait 3 seconds for the next layout in the carousel', top: '80%', left: '10%'})
   screen.append(box)
 
 }
@@ -62,7 +61,7 @@ screen.key(['escape', 'q', 'C-c'], function(ch, key) {
 //   interval: auto-advance time in ms (optional)
 //   controlKeys: enable left/right arrows and Home/End keys
 //   rotate: true to loop back to first page after last (default: false)
-var carousel = new contrib.carousel( [page1, page2]
+var carousel = new galactica.carousel( [page1, page2]
                                    , { screen: screen
                                      , interval: 3000
                                      , controlKeys: true

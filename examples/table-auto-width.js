@@ -1,13 +1,12 @@
 // Table with automatic column width calculation
 // Demonstrates auto-calculated widths, focus styling, and long content handling
 
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
+var galactica = require('../')
+  , screen = galactica.screen()
 
 // Create table WITHOUT columnWidth option to trigger auto-calculation
 // This covers lines 112-125 in table.js
-var table = contrib.table({
+var table = galactica.table({
   keys: true,
   fg: 'white',
   selectedFg: 'white',

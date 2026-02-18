@@ -1,9 +1,8 @@
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
+var galactica = require('../')
+  , screen = galactica.screen()
   , colors = require('../lib/colors');
 
-var table = contrib.table(
+var table = galactica.table(
    { keys: true
    , fg: 'white'
    , selectedFg: 'white'

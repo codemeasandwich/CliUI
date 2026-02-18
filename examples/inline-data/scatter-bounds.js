@@ -1,12 +1,11 @@
 // Scatter plot with explicit axis bounds (inline-data version)
 // Demonstrates minX, maxX, minY, maxY options with data passed inline
 
-var blessed = require('../../lib/blessed')
-  , contrib = require('../../')
-  , screen = blessed.screen()
+var galactica = require('../../index')
+  , screen = galactica.screen()
 
 // Data passed inline via options
-var scatter = contrib.scatter({
+var scatter = galactica.scatter({
   label: 'Scatter Plot - Fixed Bounds (Inline)',
   left: 0,
   top: 0,

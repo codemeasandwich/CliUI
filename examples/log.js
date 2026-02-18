@@ -1,7 +1,6 @@
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
-  , log = contrib.log(
+var galactica = require('../')
+  , screen = galactica.screen()
+  , log = galactica.log(
       { fg: "green"
       , label: 'Server Log'
       , height: "20%"

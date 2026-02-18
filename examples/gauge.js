@@ -1,7 +1,6 @@
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
-  , gauge = contrib.gauge({label: 'Progress'})
+var galactica = require('../')
+  , screen = galactica.screen()
+  , gauge = galactica.gauge({label: 'Progress'})
 
 screen.append(gauge)
 

@@ -1,12 +1,11 @@
-// Sparkline without blessed tags (inline-data version)
+// Sparkline without style tags (inline-data version)
 // Demonstrates sparkline with tags:false and inline data
 
-var blessed = require('../../lib/blessed')
-  , contrib = require('../../')
-  , screen = blessed.screen()
+var galactica = require('../../index')
+  , screen = galactica.screen()
 
 // Create sparkline with inline data and tags:false
-var sparkline = contrib.sparkline({
+var sparkline = galactica.sparkline({
   label: 'Sparkline - No Tags (Inline)',
   left: 0,
   top: 0,
@@ -18,7 +17,7 @@ var sparkline = contrib.sparkline({
     titleFg: 'white',
     border: { fg: 'cyan' }
   },
-  tags: false,  // Key option: disable blessed tags
+  tags: false,  // Key option: disable style tags
   // Inline data
   data: {
     titles: ['CPU', 'Memory'],

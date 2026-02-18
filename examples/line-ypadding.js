@@ -1,7 +1,6 @@
-var blessed = require('../lib/blessed')
-, contrib = require('../index')
-, screen = blessed.screen()
-, line = contrib.line(
+var galactica = require('../')
+, screen = galactica.screen()
+, line = galactica.line(
    { width: 80
    , height: 30
    , left: 15

@@ -1,12 +1,11 @@
 // Table with automatic column width calculation (inline-data version)
 // Demonstrates auto-calculated widths with data passed inline
 
-var blessed = require('../../lib/blessed')
-  , contrib = require('../../')
-  , screen = blessed.screen()
+var galactica = require('../../index')
+  , screen = galactica.screen()
 
 // Create table with inline data
-var table = contrib.table({
+var table = galactica.table({
   keys: true,
   fg: 'white',
   selectedFg: 'white',

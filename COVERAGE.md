@@ -1,6 +1,6 @@
 # CliUI Coverage Report
 
-Terminal dashboard widgets for blessed/blessed-contrib.  
+Terminal dashboard widgets for Galactica.  
 Auto-generated coverage report from test suite.
 
 ## Summary

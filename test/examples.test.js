@@ -5,7 +5,7 @@ var assert = require('node:assert');
 var path = require('node:path');
 var fs = require('node:fs');
 
-var blessedMock = require('./helpers/blessed-mock');
+var galacticaMock = require('./helpers/galactica-mock');
 var TimerController = require('./helpers/timer-control');
 
 var examplesDir = path.join(__dirname, '..', 'examples');
@@ -49,7 +49,7 @@ test('Examples test suite', async function (t) {
       var exampleError = null;
 
       timerController.install();
-      mockScreen = blessedMock.install({ cols: 120, rows: 40 });
+      mockScreen = galacticaMock.install({ cols: 120, rows: 40 });
 
       // Change to examples dir for tests that use relative paths (e.g., picture.js)
       process.chdir(examplesDir);
@@ -72,8 +72,8 @@ test('Examples test suite', async function (t) {
 
       timerController.cleanup();
       timerController.restore();
-      blessedMock.uninstall();
-      blessedMock.clearExampleCache();
+      galacticaMock.uninstall();
+      galacticaMock.clearExampleCache();
       process.chdir(originalCwd);
 
       if (exampleError) {

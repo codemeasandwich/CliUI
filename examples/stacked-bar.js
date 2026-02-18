@@ -1,8 +1,7 @@
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
+var galactica = require('../')
+  , screen = galactica.screen()
   // Use inline data in options to trigger attach-time setData (lines 36-37)
-  , bar = contrib.stackedBar(
+  , bar = galactica.stackedBar(
        { label: 'Server Utilization (%)'
        , barWidth: 4
        , barSpacing: 6

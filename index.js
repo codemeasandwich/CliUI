@@ -1,5 +1,8 @@
-
-exports.blessed = require('./lib/blessed')
+// Merge blessed core into main export for unified API
+var blessed = require('./lib/blessed')
+Object.keys(blessed).forEach(function(key) {
+  exports[key] = blessed[key]
+})
 
 exports.grid = require('./lib/layout/grid')
 exports.carousel = require('./lib/layout/carousel')

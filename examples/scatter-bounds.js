@@ -1,13 +1,12 @@
 // Scatter plot with explicit axis bounds
 // Demonstrates minX, maxX, minY, maxY options for fixed axis ranges
 
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
+var galactica = require('../')
+  , screen = galactica.screen()
 
 // Create scatter plot with explicit bounds
 // This covers lines 88-89, 107-108, 128-129, 150-151 in scatter.js
-var scatter = contrib.scatter({
+var scatter = galactica.scatter({
   label: 'Scatter Plot - Fixed Axis Bounds',
   left: 0,
   top: 0,

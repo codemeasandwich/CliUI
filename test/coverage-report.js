@@ -122,7 +122,7 @@ function generateMarkdown (coverageData) {
 
   // Header
   md += '# CliUI Coverage Report\n\n'
-  md += 'Terminal dashboard widgets for blessed/blessed-contrib.  \n'
+  md += 'Terminal dashboard widgets for Galactica.  \n'
   md += 'Auto-generated coverage report from test suite.\n\n'
 
   // Summary

@@ -1,8 +1,7 @@
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
+var galactica = require('../')
+  , screen = galactica.screen()
   , colors = require('../lib/colors')
-  , markdown = contrib.markdown()
+  , markdown = galactica.markdown()
 
 screen.append(markdown)
 markdown.setOptions({ firstHeading: colors.red.italic })

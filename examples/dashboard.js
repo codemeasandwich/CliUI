@@ -1,11 +1,10 @@
-var blessed = require('../lib/blessed')
-  , contrib = require('../index')
+var galactica = require('../')
 
-var screen = blessed.screen()
+var screen = galactica.screen()
 
 //create layout and widgets
 
-var grid = new contrib.grid({rows: 12, cols: 12, screen: screen})
+var grid = new galactica.grid({rows: 12, cols: 12, screen: screen})
 
 /**
  * Donut Options
@@ -13,7 +12,7 @@ var grid = new contrib.grid({rows: 12, cols: 12, screen: screen})
   self.options.arcWidth = options.arcWidth || 4; //width of the donut
   self.options.yPadding = options.yPadding || 2; //padding from the top
  */
-var donut = grid.set(8, 8, 4, 2, contrib.donut, 
+var donut = grid.set(8, 8, 4, 2, galactica.donut, 
   {
   label: 'Percent Donut',
   radius: 16,
@@ -22,7 +21,7 @@ var donut = grid.set(8, 8, 4, 2, contrib.donut,
   data: [{label: 'Storage', percent: 87}]
 })
 
-// var latencyLine = grid.set(8, 8, 4, 2, contrib.line, 
+// var latencyLine = grid.set(8, 8, 4, 2, galactica.line, 
 //   { style: 
 //     { line: "yellow"
 //     , text: "green"
@@ -31,22 +30,22 @@ var donut = grid.set(8, 8, 4, 2, contrib.donut,
 //   , xPadding: 5
 //   , label: 'Network Latency (sec)'})
 
-var gauge = grid.set(8, 10, 2, 2, contrib.gauge, {label: 'Storage', percent: [80,20]})
-var gauge_two = grid.set(2, 9, 2, 3, contrib.gauge, {label: 'Deployment Progress', percent: 80})
+var gauge = grid.set(8, 10, 2, 2, galactica.gauge, {label: 'Storage', percent: [80,20]})
+var gauge_two = grid.set(2, 9, 2, 3, galactica.gauge, {label: 'Deployment Progress', percent: 80})
 
-var sparkline = grid.set(10, 10, 2, 2, contrib.sparkline, 
+var sparkline = grid.set(10, 10, 2, 2, galactica.sparkline, 
   { label: 'Throughput (bits/sec)'
   , tags: true
   , style: { fg: 'blue', titleFg: 'white' }})
 
-var bar = grid.set(4, 6, 4, 3, contrib.bar, 
+var bar = grid.set(4, 6, 4, 3, galactica.bar, 
   { label: 'Server Utilization (%)'
   , barWidth: 4
   , barSpacing: 6
   , xOffset: 2
   , maxHeight: 9})
 
-var table =  grid.set(4, 9, 4, 3, contrib.table, 
+var table =  grid.set(4, 9, 4, 3, galactica.table, 
   { keys: true
   , fg: 'green'
   , label: 'Active Processes'
@@ -68,7 +67,7 @@ var table =  grid.set(4, 9, 4, 3, contrib.table,
 //coloring
   options.color = options.color || "white";
 */
-var lcdLineOne = grid.set(0,9,2,3, contrib.lcd,
+var lcdLineOne = grid.set(0,9,2,3, galactica.lcd,
   {
     label: "LCD Test",
     segmentWidth: 0.06,
@@ -81,7 +80,7 @@ var lcdLineOne = grid.set(0,9,2,3, contrib.lcd,
   }
 );
 
-var errorsLine = grid.set(0, 6, 4, 3, contrib.line, 
+var errorsLine = grid.set(0, 6, 4, 3, galactica.line, 
   { style: 
     { line: "red"
     , text: "white"
@@ -90,16 +89,16 @@ var errorsLine = grid.set(0, 6, 4, 3, contrib.line,
   , maxY: 60
   , showLegend: true })
 
-var transactionsLine = grid.set(0, 0, 6, 6, contrib.line, 
+var transactionsLine = grid.set(0, 0, 6, 6, galactica.line, 
           { showNthLabel: 5
           , maxY: 100
           , label: 'Total Transactions'
           , showLegend: true
           , legend: {width: 10}})
 
-var map = grid.set(6, 0, 6, 6, contrib.map, {label: 'Servers Location'})
+var map = grid.set(6, 0, 6, 6, galactica.map, {label: 'Servers Location'})
 
-var log = grid.set(8, 6, 4, 2, contrib.log, 
+var log = grid.set(8, 6, 4, 2, galactica.log, 
   { fg: "green"
   , selectedFg: "green"
   , label: 'Server Log'})

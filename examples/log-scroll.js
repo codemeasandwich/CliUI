@@ -1,12 +1,11 @@
 // Log widget with manual scroll control
 // Demonstrates scrollTo method for programmatic scroll positioning
 
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
+var galactica = require('../')
+  , screen = galactica.screen()
 
 // Create log with larger buffer
-var log = contrib.log({
+var log = galactica.log({
   fg: 'green',
   selectedFg: 'green',
   label: 'Log - Scroll Control',

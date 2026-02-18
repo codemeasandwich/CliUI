@@ -1,8 +1,7 @@
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen();
+var galactica = require('../')
+  , screen = galactica.screen();
 
-var lcd = contrib.lcd({
+var lcd = galactica.lcd({
 	label: 'Test',
 	elements: 4
 });

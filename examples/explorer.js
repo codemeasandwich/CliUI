@@ -1,19 +1,18 @@
-var blessed = require('../lib/blessed')
-  , contrib = require('../index')
+var galactica = require('../')
   , fs = require('fs')
   , path = require('path')
 
-var screen = blessed.screen()
+var screen = galactica.screen()
 
 //create layout and widgets
-var grid = new contrib.grid({rows: 1, cols: 2, screen: screen})
+var grid = new galactica.grid({rows: 1, cols: 2, screen: screen})
 
-var tree =  grid.set(0, 0, 1, 1, contrib.tree, 
+var tree =  grid.set(0, 0, 1, 1, galactica.tree, 
   { style: { text: "red" }
   , template: { lines: true }
   , label: 'Filesystem Tree'})
 
-var table =  grid.set(0, 1, 1, 1, contrib.table, 
+var table =  grid.set(0, 1, 1, 1, galactica.table, 
   { keys: true
   , fg: 'green'
   , label: 'Informations'

@@ -1,7 +1,6 @@
-var blessed = require('../lib/blessed')
-, contrib = require('../index')
-, screen = blessed.screen()
-, scatter = contrib.scatter(
+var galactica = require('../')
+, screen = galactica.screen()
+, scatter = galactica.scatter(
    { width: 80
    , height: 30
    , left: 15

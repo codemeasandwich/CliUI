@@ -1,6 +1,5 @@
-var blessed = require('../lib/blessed')
-  , contrib = require('../index')
-  , screen = blessed.screen();
+var galactica = require('../')
+  , screen = galactica.screen();
 
 /**
  * Donut Options
@@ -11,7 +10,7 @@ var blessed = require('../lib/blessed')
   self.options.yPadding = options.yPadding || 2;
  */
 
-var donut = contrib.donut({
+var donut = galactica.donut({
   	label: 'Test',
   	radius: 8,
   	arcWidth: 3,

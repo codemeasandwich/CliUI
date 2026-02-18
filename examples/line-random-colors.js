@@ -1,12 +1,11 @@
-var blessed = require('../lib/blessed')
-, contrib = require('../index')
+var galactica = require('../')
 
 function randomColor() {
   return [Math.random() * 255,Math.random()*255, Math.random()*255]
 }
 
-var screen = blessed.screen()
-, line = contrib.line(
+var screen = galactica.screen()
+, line = galactica.line(
    { width: 80
    , height: 30
    , left: 15

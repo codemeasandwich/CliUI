@@ -1,7 +1,6 @@
-var blessed = require('../../lib/blessed')
-  , contrib = require('../../')
-  , screen = blessed.screen()
-  , donut = contrib.donut(
+var galactica = require('../../index')
+  , screen = galactica.screen()
+  , donut = galactica.donut(
        {
         data: [ { color: 'red', percent: '50', label: 'a'}
               , { color: 'blue', percent: '20', label: 'b'}

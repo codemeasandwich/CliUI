@@ -1,8 +1,7 @@
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
-  , grid = new contrib.grid({rows: 2, cols: 2, hideBorder: true, screen: screen})
-  , gaugeList = grid.set(0, 0, 1, 2, contrib.gaugeList,
+var galactica = require('../')
+  , screen = galactica.screen()
+  , grid = new galactica.grid({rows: 2, cols: 2, hideBorder: true, screen: screen})
+  , gaugeList = grid.set(0, 0, 1, 2, galactica.gaugeList,
       {
         gaugeSpacing: 0,
         gaugeHeight: 1,

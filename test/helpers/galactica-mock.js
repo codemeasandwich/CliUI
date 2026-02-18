@@ -1,12 +1,12 @@
 'use strict';
 
 /**
- * Blessed module mock for headless testing.
- * Intercepts blessed.screen() to inject mock TTY I/O streams.
+ * Galactica module mock for headless testing.
+ * Intercepts galactica.screen() to inject mock TTY I/O streams.
  * Based on patterns from lib/server-utils.js.
  */
 
-var blessed = require('../../lib/blessed');
+var galactica = require('../../lib/blessed');
 
 /**
  * Mock output buffer that captures terminal output.
@@ -51,7 +51,7 @@ function TestInputBuffer () {
 }
 
 /**
- * Creates a mock blessed screen with captured I/O.
+ * Creates a mock galactica screen with captured I/O.
  */
 function createMockScreen (options) {
   options = options || {};
@@ -62,12 +62,12 @@ function createMockScreen (options) {
   });
   var input = new TestInputBuffer();
 
-  var program = blessed.program({
+  var program = galactica.program({
     output: output,
     input: input
   });
 
-  var screen = blessed.screen({
+  var screen = galactica.screen({
     program: program,
     smartCSR: true,
     warnings: false
@@ -95,14 +95,14 @@ var originalScreen = null;
 var originalExit = null;
 
 /**
- * Install the blessed mock.
- * Intercepts blessed.screen() to return mock screen.
+ * Install the galactica mock.
+ * Intercepts galactica.screen() to return mock screen.
  */
 function install (options) {
   mockScreen = createMockScreen(options);
 
-  originalScreen = blessed.screen;
-  blessed.screen = function () {
+  originalScreen = galactica.screen;
+  galactica.screen = function () {
     return mockScreen;
   };
 
@@ -113,11 +113,11 @@ function install (options) {
 }
 
 /**
- * Uninstall the blessed mock and restore originals.
+ * Uninstall the galactica mock and restore originals.
  */
 function uninstall () {
   if (originalScreen) {
-    blessed.screen = originalScreen;
+    galactica.screen = originalScreen;
     originalScreen = null;
   }
 

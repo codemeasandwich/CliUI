@@ -1,7 +1,6 @@
-var blessed = require('../../lib/blessed')
-  , contrib = require('../../')
-  , screen = blessed.screen()
-  , bar = contrib.bar(
+var galactica = require('../../index')
+  , screen = galactica.screen()
+  , bar = galactica.bar(
        { label: 'Server Utilization (%)'
        , barWidth: 4
        , barSpacing: 6

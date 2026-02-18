@@ -1,8 +1,7 @@
-const blessed = require("../lib/blessed")
-const contrib = require("../")
+const galactica = require("../")
 
-const screen = blessed.screen()
-const markdown = contrib.markdown()
+const screen = galactica.screen()
+const markdown = galactica.markdown()
 screen.append(markdown)
 markdown.setMarkdown("- [x] Checkbox")
 screen.render()

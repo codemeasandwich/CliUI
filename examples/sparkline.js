@@ -1,9 +1,8 @@
 
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
+var galactica = require('../')
+  , screen = galactica.screen()
 
-var spark = contrib.sparkline(
+var spark = galactica.sparkline(
      { label: 'Sparkline'
      , tags: true
      , border: {type: "line", fg: "cyan"} 

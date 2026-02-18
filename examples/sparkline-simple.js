@@ -1,12 +1,11 @@
-// Sparkline without blessed tags
+// Sparkline without style tags
 // Demonstrates sparkline with tags:false for plain text output
 
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
+var galactica = require('../')
+  , screen = galactica.screen()
 
 // Create sparkline with tags:false to cover lines 39-40 in sparkline.js
-var sparkline = contrib.sparkline({
+var sparkline = galactica.sparkline({
   label: 'Sparkline - No Tags',
   left: 0,
   top: 0,
@@ -18,7 +17,7 @@ var sparkline = contrib.sparkline({
     titleFg: 'white',
     border: { fg: 'cyan' }
   },
-  tags: false  // Key option: disable blessed tags (covers lines 39-40)
+  tags: false  // Key option: disable style tags (covers lines 39-40)
 })
 
 // Multiple sparkline data series

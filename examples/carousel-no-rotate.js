@@ -2,12 +2,11 @@
 // This example demonstrates the carousel widget with rotate:false
 // When reaching boundaries, it stays at the current page instead of wrapping
 
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
+var galactica = require('../')
+  , screen = galactica.screen()
 
 function page1(screen) {
-  var box = blessed.box({
+  var box = galactica.box({
     content: 'Page 1 (First)\n\nUse arrow keys to navigate.\nWith rotate:false, pressing left here does nothing.',
     top: 'center',
     left: 'center',
@@ -20,7 +19,7 @@ function page1(screen) {
 }
 
 function page2(screen) {
-  var box = blessed.box({
+  var box = galactica.box({
     content: 'Page 2 (Middle)\n\nYou can navigate left or right from here.',
     top: 'center',
     left: 'center',
@@ -33,7 +32,7 @@ function page2(screen) {
 }
 
 function page3(screen) {
-  var box = blessed.box({
+  var box = galactica.box({
     content: 'Page 3 (Last)\n\nWith rotate:false, pressing right here does nothing.',
     top: 'center',
     left: 'center',
@@ -50,7 +49,7 @@ screen.key(['escape', 'q', 'C-c'], function(ch, key) {
 });
 
 // Create carousel with rotate:false - stops at boundaries
-var carousel = new contrib.carousel(
+var carousel = new galactica.carousel(
   [page1, page2, page3],
   { screen: screen
   , controlKeys: true

@@ -2,12 +2,11 @@
 // Demonstrates getOptionsPrototype() for widgets
 // Useful for building widget configurators, documentation generators, or form builders
 
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
+var galactica = require('../')
+  , screen = galactica.screen()
 
 // Create a display box to show the results
-var box = blessed.box({
+var box = galactica.box({
   label: 'Widget Option Prototypes',
   left: 0,
   top: 0,
@@ -24,7 +23,7 @@ screen.append(box)
 // Note: Canvas-based widgets (bar, line, scatter, etc.) fail in test env
 
 // Gauge (covers line 121 in gauge.js)
-var gauge = contrib.gauge({ width: 20, height: 10, left: 0, top: 0 })
+var gauge = galactica.gauge({ width: 20, height: 10, left: 0, top: 0 })
 screen.append(gauge)
 gauge.getOptionsPrototype()
 

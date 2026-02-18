@@ -1,8 +1,7 @@
-var blessed = require('../lib/blessed')
-, contrib = require('../index')
-, screen = blessed.screen()
+var galactica = require('../')
+, screen = galactica.screen()
 
-var table = contrib.table({
+var table = galactica.table({
   keys: true,
   fg: 'white',
   selectedFg: 'white',

@@ -1,12 +1,11 @@
 // Markdown with custom chalk styles (inline-data version)
 // Demonstrates markdownStyle with inline markdown content
 
-var blessed = require('../../lib/blessed')
-  , contrib = require('../../')
-  , screen = blessed.screen()
+var galactica = require('../../index')
+  , screen = galactica.screen()
 
 // Create markdown with custom styles and inline content
-var markdown = contrib.markdown({
+var markdown = galactica.markdown({
   label: 'Markdown - Styled (Inline)',
   left: 0,
   top: 0,
@@ -26,7 +25,7 @@ var markdown = contrib.markdown({
 **Install** the package:
 
 \`\`\`
-npm install blessed-contrib
+npm install galactica
 \`\`\`
 
 *Happy coding!*

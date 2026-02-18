@@ -1,11 +1,10 @@
 // Tree with pre-extended nodes and tree lines
 // Demonstrates extended nodes with children showing the tree connector
 
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
+var galactica = require('../')
+  , screen = galactica.screen()
 
-var tree = contrib.tree({
+var tree = galactica.tree({
   fg: 'green',
   label: 'File Explorer - Extended Tree',
   left: 0,

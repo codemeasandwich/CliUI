@@ -1,13 +1,12 @@
 // Markdown with custom chalk styles
 // Demonstrates markdownStyle option with string-based chalk color definitions
 
-var blessed = require('../lib/blessed')
-  , contrib = require('../')
-  , screen = blessed.screen()
+var galactica = require('../')
+  , screen = galactica.screen()
 
 // Create markdown widget with custom chalk styles
 // This covers lines 44-52 (evalStyles function) in markdown.js
-var markdown = contrib.markdown({
+var markdown = galactica.markdown({
   label: 'Markdown - Custom Styles',
   left: 0,
   top: 0,
@@ -38,13 +37,13 @@ This is a **dashboard library** for building *terminal UIs*.
 - Scatter plots
 - Tables and trees
 
-> Note: All widgets support blessed styling
+> Note: All widgets support Galactica styling
 
 Here is some \`inline code\` example.
 
 \`\`\`
 // Code block example
-var widget = contrib.line({ ... });
+var widget = galactica.line({ ... });
 \`\`\`
 `
 })

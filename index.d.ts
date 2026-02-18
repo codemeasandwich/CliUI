@@ -1,6 +1,6 @@
 import * as Blessed from 'blessed'
-export = BlessedContrib
-declare namespace BlessedContrib {
+export = Galactica
+declare namespace Galactica {
 
     export type Optionals<T, K extends keyof T> = {
         [P in keyof K]?: T[K]
