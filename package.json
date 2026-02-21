@@ -1,6 +1,6 @@
 {
   "name": "galactica",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Build terminal dashboards using ascii/ansi art and javascript",
   "keywords": [
     "terminal",

@@ -254,8 +254,8 @@ test('border/cutout.js — setCutout / clearCutout / getCutoutInner', async func
       assert.strictEqual(inner.height, 1, 'height should be CH-1 = 1');
       // top = atop - CH + 1 = 4 - 2 + 1 = 3
       assert.strictEqual(inner.top, 3);
-      // left = aleft + 1 = 4 + 1 = 5
-      assert.strictEqual(inner.left, 5);
+      // left = aleft + CW + 2 = 4 + 5 + 2 = 11
+      assert.strictEqual(inner.left, 11);
       // width = box.width - CW - 3 = 50 - 5 - 3 = 42
       assert.strictEqual(inner.width, 42);
     });
@@ -272,8 +272,8 @@ test('border/cutout.js — setCutout / clearCutout / getCutoutInner', async func
       assert.strictEqual(inner.height, 2, 'height should be CH-1 = 2');
       // top = atop + height = 4 + 10 = 14
       assert.strictEqual(inner.top, 14);
-      // left = aleft + CW + 2 = 4 + 3 + 2 = 9
-      assert.strictEqual(inner.left, 9);
+      // left = aleft + 1 = 4 + 1 = 5
+      assert.strictEqual(inner.left, 5);
       // width = box.width - CW - 3 = 50 - 3 - 3 = 44
       assert.strictEqual(inner.width, 44);
     });
@@ -289,8 +289,8 @@ test('border/cutout.js — setCutout / clearCutout / getCutoutInner', async func
       assert.strictEqual(inner.height, 1);
       // top = atop + height = 4 + 10 = 14
       assert.strictEqual(inner.top, 14);
-      // left = aleft + 1 = 5
-      assert.strictEqual(inner.left, 5);
+      // left = aleft + CW + 2 = 4 + 5 + 2 = 11
+      assert.strictEqual(inner.left, 11);
       // width = 50 - 5 - 3 = 42
       assert.strictEqual(inner.width, 42);
     });
@@ -306,8 +306,8 @@ test('border/cutout.js — setCutout / clearCutout / getCutoutInner', async func
       assert.strictEqual(inner.height, 1);
       // top = atop - CH + 1 = 4 - 2 + 1 = 3
       assert.strictEqual(inner.top, 3);
-      // left = aleft + CW + 2 = 4 + 4 + 2 = 10
-      assert.strictEqual(inner.left, 10);
+      // left = aleft + 1 = 4 + 1 = 5
+      assert.strictEqual(inner.left, 5);
       // width = 50 - 4 - 3 = 43
       assert.strictEqual(inner.width, 43);
     });

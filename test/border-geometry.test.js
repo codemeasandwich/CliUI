@@ -28,39 +28,39 @@ test('lib/border/geometry.js — step geometry helpers', async function (t) {
   });
 
   await t.test('stepGeometry top-right: correct absolute positions', function () {
-    // CH=2, CW=5 → stepLeftCol = xl-CW-2 = 54-5-2 = 47, stepRightCol = xl-1 = 53
+    // CH=2, CW=5 → stepLeftCol = xi+CW+1 = 4+5+1 = 10, stepRightCol = xl-1 = 53
     var g = geometry.stepGeometry('top-right', XI, XL, YI, YL, 2, 5);
     assert.strictEqual(g.junctionRow,  YI,       'junctionRow = yi');
-    assert.strictEqual(g.stepLeftCol,  47,       'stepLeftCol = xl-CW-2');
+    assert.strictEqual(g.stepLeftCol,  10,       'stepLeftCol = xi+CW+1');
     assert.strictEqual(g.stepRightCol, 53,       'stepRightCol = xl-1');
-    assert.strictEqual(g.textColBase,  47,       'textColBase = xl-CW-2 (right-align)');
+    assert.strictEqual(g.textColBase,  XI + 1,   'textColBase = xi+1 (right-align)');
   });
 
   await t.test('stepGeometry top-left: correct absolute positions', function () {
-    // CH=2, CW=5 → stepRightCol = xi+CW+1 = 4+5+1 = 10
+    // CH=2, CW=5 → stepRightCol = xl-CW-2 = 54-5-2 = 47
     var g = geometry.stepGeometry('top-left', XI, XL, YI, YL, 2, 5);
     assert.strictEqual(g.junctionRow,  YI,       'junctionRow = yi');
     assert.strictEqual(g.stepLeftCol,  XI,       'stepLeftCol = xi');
-    assert.strictEqual(g.stepRightCol, 10,       'stepRightCol = xi+CW+1');
-    assert.strictEqual(g.textColBase,  XI + 1,   'textColBase = xi+1 (left-align)');
+    assert.strictEqual(g.stepRightCol, 47,       'stepRightCol = xl-CW-2');
+    assert.strictEqual(g.textColBase,  48,       'textColBase = xl-CW-1 (left-align)');
   });
 
   await t.test('stepGeometry bottom-right: correct absolute positions', function () {
-    // CH=2, CW=5 → junctionRow = yl-1 = 13, stepLeftCol = xl-CW-2 = 47, stepRightCol = xl-1 = 53
+    // CH=2, CW=5 → junctionRow = yl-1 = 13, stepLeftCol = xi+CW+1 = 10, stepRightCol = xl-1 = 53
     var g = geometry.stepGeometry('bottom-right', XI, XL, YI, YL, 2, 5);
     assert.strictEqual(g.junctionRow,  YL - 1,   'junctionRow = yl-1');
-    assert.strictEqual(g.stepLeftCol,  47,        'stepLeftCol = xl-CW-2');
+    assert.strictEqual(g.stepLeftCol,  10,        'stepLeftCol = xi+CW+1');
     assert.strictEqual(g.stepRightCol, 53,        'stepRightCol = xl-1');
-    assert.strictEqual(g.textColBase,  47,        'textColBase = xl-CW-2');
+    assert.strictEqual(g.textColBase,  XI + 1,    'textColBase = xi+1');
   });
 
   await t.test('stepGeometry bottom-left: correct absolute positions', function () {
-    // CH=2, CW=5 → junctionRow = yl-1 = 13, stepRightCol = xi+CW+1 = 10
+    // CH=2, CW=5 → junctionRow = yl-1 = 13, stepRightCol = xl-CW-2 = 47
     var g = geometry.stepGeometry('bottom-left', XI, XL, YI, YL, 2, 5);
     assert.strictEqual(g.junctionRow,  YL - 1,   'junctionRow = yl-1');
     assert.strictEqual(g.stepLeftCol,  XI,        'stepLeftCol = xi');
-    assert.strictEqual(g.stepRightCol, 10,        'stepRightCol = xi+CW+1');
-    assert.strictEqual(g.textColBase,  XI + 1,    'textColBase = xi+1');
+    assert.strictEqual(g.stepRightCol, 47,        'stepRightCol = xl-CW-2');
+    assert.strictEqual(g.textColBase,  48,        'textColBase = xl-CW-1');
   });
 
   await t.test('stepGeometry returns null for unknown position', function () {
@@ -72,7 +72,7 @@ test('lib/border/geometry.js — step geometry helpers', async function (t) {
     // CH=1 edge case: no wall rows, junction+closing collapse
     var g = geometry.stepGeometry('top-right', XI, XL, YI, YL, 1, 8);
     assert.strictEqual(g.junctionRow, YI, 'junction is still at yi');
-    assert.strictEqual(g.stepLeftCol, XL - 8 - 2, 'stepLeftCol = xl-CW-2');
+    assert.strictEqual(g.stepLeftCol, XI + 8 + 1, 'stepLeftCol = xi+CW+1');
   });
 
   await t.test('stepGeometry CH=1 bottom-left: junctionRow at yl-1', function () {
@@ -82,7 +82,7 @@ test('lib/border/geometry.js — step geometry helpers', async function (t) {
 
   await t.test('stepGeometry CW=0: stepLeftCol still computable', function () {
     var g = geometry.stepGeometry('top-right', XI, XL, YI, YL, 1, 0);
-    assert.strictEqual(g.stepLeftCol, XL - 0 - 2);
+    assert.strictEqual(g.stepLeftCol, XI + 0 + 1);
     assert.strictEqual(g.stepRightCol, XL - 1);
   });
 
@@ -104,16 +104,16 @@ test('lib/border/geometry.js — step geometry helpers', async function (t) {
     assert.strictEqual(jc.rightChar, CHARSET.bottomLeft, 'rightChar = bottomLeft');
   });
 
-  await t.test('stepJunctionChars bottom-right: topLeft at left, null at right', function () {
+  await t.test('stepJunctionChars bottom-right: topRight at left, null at right', function () {
     var jc = geometry.stepJunctionChars('bottom-right', CHARSET);
-    assert.strictEqual(jc.leftChar,  CHARSET.topLeft, 'leftChar = topLeft');
-    assert.strictEqual(jc.rightChar, null,            'rightChar = null (bottomRight unchanged)');
+    assert.strictEqual(jc.leftChar,  CHARSET.topRight, 'leftChar = topRight');
+    assert.strictEqual(jc.rightChar, null,             'rightChar = null (bottomRight unchanged)');
   });
 
-  await t.test('stepJunctionChars bottom-left: null at left, topRight at right', function () {
+  await t.test('stepJunctionChars bottom-left: null at left, topLeft at right', function () {
     var jc = geometry.stepJunctionChars('bottom-left', CHARSET);
-    assert.strictEqual(jc.leftChar,  null,             'leftChar = null (bottomLeft unchanged)');
-    assert.strictEqual(jc.rightChar, CHARSET.topRight, 'rightChar = topRight');
+    assert.strictEqual(jc.leftChar,  null,            'leftChar = null (bottomLeft unchanged)');
+    assert.strictEqual(jc.rightChar, CHARSET.topLeft, 'rightChar = topLeft');
   });
 
   await t.test('stepJunctionChars unknown position: both null', function () {
@@ -132,16 +132,16 @@ test('lib/border/geometry.js — step geometry helpers', async function (t) {
     assert.strictEqual(geometry.textAlignment('top-right'), 'right');
   });
 
-  await t.test('textAlignment bottom-left is right', function () {
-    assert.strictEqual(geometry.textAlignment('bottom-left'), 'right');
+  await t.test('textAlignment bottom-right is right', function () {
+    assert.strictEqual(geometry.textAlignment('bottom-right'), 'right');
   });
 
   await t.test('textAlignment top-left is left', function () {
     assert.strictEqual(geometry.textAlignment('top-left'), 'left');
   });
 
-  await t.test('textAlignment bottom-right is left', function () {
-    assert.strictEqual(geometry.textAlignment('bottom-right'), 'left');
+  await t.test('textAlignment bottom-left is left', function () {
+    assert.strictEqual(geometry.textAlignment('bottom-left'), 'left');
   });
 
   // ── rightAlign ────────────────────────────────────────────────────────────
@@ -261,17 +261,19 @@ test('lib/border/geometry.js — step geometry helpers', async function (t) {
     assert.strictEqual(bl.stepLeftCol, XI);
   });
 
-  await t.test('stepWidth = stepRightCol - stepLeftCol - 1 = CW for right corners', function () {
+  await t.test('stepWidth = stepRightCol - stepLeftCol - 1 = elemWidth-CW-3 for right corners', function () {
     var CW = 7;
+    var elemWidth = XL - XI;  // 50
     var tr = geometry.stepGeometry('top-right', XI, XL, YI, YL, 2, CW);
     var stepWidth = tr.stepRightCol - tr.stepLeftCol - 1;  // interior cols between walls
-    assert.strictEqual(stepWidth, CW, 'interior step width should equal CW');
+    assert.strictEqual(stepWidth, elemWidth - CW - 3, 'interior step width should equal elemWidth-CW-3');
   });
 
-  await t.test('stepWidth = stepRightCol - stepLeftCol - 1 = CW for left corners', function () {
+  await t.test('stepWidth = stepRightCol - stepLeftCol - 1 = elemWidth-CW-3 for left corners', function () {
     var CW = 7;
+    var elemWidth = XL - XI;  // 50
     var tl = geometry.stepGeometry('top-left', XI, XL, YI, YL, 2, CW);
     var stepWidth = tl.stepRightCol - tl.stepLeftCol - 1;
-    assert.strictEqual(stepWidth, CW, 'interior step width should equal CW');
+    assert.strictEqual(stepWidth, elemWidth - CW - 3, 'interior step width should equal elemWidth-CW-3');
   });
 });

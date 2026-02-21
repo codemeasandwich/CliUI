@@ -59,12 +59,12 @@ test('_paintCutouts — screen output', async function (t) {
   await t.test('top-right CH=1: step top row has topLeft+horiz+topRight', function () {
     setup({}, function (screen, box) {
       // box: top=4,left=4,width=20,height=8 → xi=4,xl=24,yi=4,yl=12
-      // CW=5 ('hello'), stepLeftX=xl-CW-2=17, stepTopY=yi-1=3
+      // CW=5 ('hello'), stepLeftX=xi+CW+1=10, stepTopY=yi-1=3
       box.setCutout('top-right', 'hello');
       screen.render();
-      // step top row@3: topLeft@17, ─@18-22, topRight@23
-      assert.strictEqual(screenChar(screen, 3, 17), '\u250C', 'topLeft at stepLeftX');
-      assert.strictEqual(screenChar(screen, 3, 18), '\u2500', 'horizontal fill start');
+      // step top row@3: topLeft@10, ─@11-22, topRight@23
+      assert.strictEqual(screenChar(screen, 3, 10), '\u250C', 'topLeft at stepLeftX');
+      assert.strictEqual(screenChar(screen, 3, 11), '\u2500', 'horizontal fill start');
       assert.strictEqual(screenChar(screen, 3, 22), '\u2500', 'horizontal fill end');
       assert.strictEqual(screenChar(screen, 3, 23), '\u2510', 'topRight at xl-1');
     });
@@ -72,20 +72,20 @@ test('_paintCutouts — screen output', async function (t) {
 
   await t.test('top-right CH=1: text right-aligned left of step', function () {
     setup({}, function (screen, box) {
-      // stepLeftX=17, text 'hello' (CW=5) at cols 12..16
+      // stepLeftX=10, text 'hello' (CW=5) at cols 5..9
       box.setCutout('top-right', 'hello');
       screen.render();
-      assert.strictEqual(screenRow(screen, 3, 12, 16), 'hello', 'text on step-top row');
+      assert.strictEqual(screenRow(screen, 3, 5, 9), 'hello', 'text on step-top row');
     });
   });
 
   await t.test('top-right CH=1: junction row has bottomRight at stepLeftX and vertical at xl-1', function () {
     setup({}, function (screen, box) {
-      // junction@4: bottomRight@17, spaces@18-22, vertical@23
+      // junction@4: bottomRight@10, spaces@11-22, vertical@23
       box.setCutout('top-right', 'hello');
       screen.render();
-      assert.strictEqual(screenChar(screen, 4, 17), '\u2518', 'bottomRight at stepLeftX');
-      assert.strictEqual(screenChar(screen, 4, 18), ' ', 'cleared space after step');
+      assert.strictEqual(screenChar(screen, 4, 10), '\u2518', 'bottomRight at stepLeftX');
+      assert.strictEqual(screenChar(screen, 4, 11), ' ', 'cleared space after step');
       assert.strictEqual(screenChar(screen, 4, 23), '\u2502', 'vertical at xl-1 on junction');
     });
   });
@@ -94,40 +94,40 @@ test('_paintCutouts — screen output', async function (t) {
 
   await t.test('top-right CH=2: step top row correct', function () {
     setup({}, function (screen, box) {
-      // CW=5 ('hello'/'world'), stepLeftX=17, stepTopY=yi-2=2
+      // CW=5 ('hello'/'world'), stepLeftX=10, stepTopY=yi-2=2
       box.setCutout('top-right', 'hello\nworld');
       screen.render();
-      assert.strictEqual(screenChar(screen, 2, 17), '\u250C', 'topLeft on step top row');
+      assert.strictEqual(screenChar(screen, 2, 10), '\u250C', 'topLeft on step top row');
       assert.strictEqual(screenChar(screen, 2, 23), '\u2510', 'topRight on step top row');
     });
   });
 
   await t.test('top-right CH=2: wall row has verticals on both sides', function () {
     setup({}, function (screen, box) {
-      // wall row@3: vertical@17, vertical@23
+      // wall row@3: vertical@10, vertical@23
       box.setCutout('top-right', 'hello\nworld');
       screen.render();
-      assert.strictEqual(screenChar(screen, 3, 17), '\u2502', 'vertical at stepLeftX on wall');
+      assert.strictEqual(screenChar(screen, 3, 10), '\u2502', 'vertical at stepLeftX on wall');
       assert.strictEqual(screenChar(screen, 3, 23), '\u2502', 'vertical at xl-1 on wall');
     });
   });
 
   await t.test('top-right CH=2: text on step-top and wall rows', function () {
     setup({}, function (screen, box) {
-      // text lines: 'hello'@row2 cols12-16, 'world'@row3 cols12-16
+      // text lines: 'hello'@row2 cols5-9, 'world'@row3 cols5-9
       box.setCutout('top-right', 'hello\nworld');
       screen.render();
-      assert.strictEqual(screenRow(screen, 2, 12, 16), 'hello', 'line 0 on step-top row');
-      assert.strictEqual(screenRow(screen, 3, 12, 16), 'world', 'line 1 on wall row');
+      assert.strictEqual(screenRow(screen, 2, 5, 9), 'hello', 'line 0 on step-top row');
+      assert.strictEqual(screenRow(screen, 3, 5, 9), 'world', 'line 1 on wall row');
     });
   });
 
   await t.test('top-right CH=2: junction row has bottomRight and vertical', function () {
     setup({}, function (screen, box) {
-      // junction@4: bottomRight@17, spaces@18-22, vertical@23
+      // junction@4: bottomRight@10, spaces@11-22, vertical@23
       box.setCutout('top-right', 'hello\nworld');
       screen.render();
-      assert.strictEqual(screenChar(screen, 4, 17), '\u2518', 'bottomRight at stepLeftX on junction');
+      assert.strictEqual(screenChar(screen, 4, 10), '\u2518', 'bottomRight at stepLeftX on junction');
       assert.strictEqual(screenChar(screen, 4, 23), '\u2502', 'vertical at xl-1 on junction');
     });
   });
@@ -137,14 +137,14 @@ test('_paintCutouts — screen output', async function (t) {
   await t.test('top-right CH=2: short line is right-aligned (flush against step)', function () {
     setup({}, function (screen, box) {
       // 'ab\nlonger' → CW=6. 'ab' right-aligned in 6 chars = '    ab'
-      // stepLeftX = xl-CW-2 = 24-6-2=16, text at cols stepLeftX-CW..stepLeftX-1 = 10..15
+      // stepLeftX = xi+CW+1 = 4+6+1=11, text at cols xi+1..xi+CW = 5..10
       // stepTopY = yi-CH = 4-2=2, wallY = 3
       box.setCutout('top-right', 'ab\nlonger');
       screen.render();
-      // step top row@2: 'ab' right-aligned in 6 cols at 10..15 = '    ab'
-      assert.strictEqual(screenRow(screen, 2, 10, 15), '    ab', 'short line right-aligned on step-top');
-      // wall row@3: 'longer' right-aligned in 6 cols at 10..15 = 'longer'
-      assert.strictEqual(screenRow(screen, 3, 10, 15), 'longer', 'long line on wall row');
+      // step top row@2: 'ab' right-aligned in 6 cols at 5..10 = '    ab'
+      assert.strictEqual(screenRow(screen, 2, 5, 10), '    ab', 'short line right-aligned on step-top');
+      // wall row@3: 'longer' right-aligned in 6 cols at 5..10 = 'longer'
+      assert.strictEqual(screenRow(screen, 3, 5, 10), 'longer', 'long line on wall row');
     });
   });
 
@@ -152,21 +152,21 @@ test('_paintCutouts — screen output', async function (t) {
 
   await t.test('top-left CH=1: step top row has topLeft+horiz+topRight', function () {
     setup({}, function (screen, box) {
-      // xi=4, stepRightX=xi+CW+1=4+5+1=10, stepTopY=yi-1=3
+      // xi=4, stepRightX=xl-CW-2=24-5-2=17, stepTopY=yi-1=3
       box.setCutout('top-left', 'hello');
       screen.render();
       assert.strictEqual(screenChar(screen, 3, 4),  '\u250C', 'topLeft at xi on step top');
       assert.strictEqual(screenChar(screen, 3, 5),  '\u2500', 'horizontal fill');
-      assert.strictEqual(screenChar(screen, 3, 10), '\u2510', 'topRight at stepRightX');
+      assert.strictEqual(screenChar(screen, 3, 17), '\u2510', 'topRight at stepRightX');
     });
   });
 
   await t.test('top-left CH=1: text left-aligned right of step', function () {
     setup({}, function (screen, box) {
-      // text 'hello' at cols 11..15 (stepRightX+1=11)
+      // text 'hello' at cols 18..22 (stepRightX+1=18)
       box.setCutout('top-left', 'hello');
       screen.render();
-      assert.strictEqual(screenRow(screen, 3, 11, 15), 'hello', 'text on step-top row');
+      assert.strictEqual(screenRow(screen, 3, 18, 22), 'hello', 'text on step-top row');
     });
   });
 
@@ -176,106 +176,108 @@ test('_paintCutouts — screen output', async function (t) {
       screen.render();
       assert.strictEqual(screenChar(screen, 4, 4),  '\u2502', 'vertical at xi on junction');
       assert.strictEqual(screenChar(screen, 4, 5),  ' ',      'cleared space after xi');
-      assert.strictEqual(screenChar(screen, 4, 10), '\u2514', 'bottomLeft at stepRightX');
+      assert.strictEqual(screenChar(screen, 4, 17), '\u2514', 'bottomLeft at stepRightX');
     });
   });
 
   await t.test('top-left CH=2: wall row has verticals on both sides, text to right', function () {
     setup({}, function (screen, box) {
-      // CW=5 ('hi' padded), stepRightX=10, stepTopY=yi-2=2
-      // wall@3: vertical@4, vertical@10, text at 11..15
+      // CW=5 ('hi' padded), stepRightX=17, stepTopY=yi-2=2
+      // wall@3: vertical@4, vertical@17, text at 18..22
       box.setCutout('top-left', 'hi\nhello');
       screen.render();
       assert.strictEqual(screenChar(screen, 3, 4),  '\u2502', 'vertical at xi on wall');
-      assert.strictEqual(screenChar(screen, 3, 10), '\u2502', 'vertical at stepRightX on wall');
-      assert.strictEqual(screenRow(screen, 3, 11, 15), 'hello', 'line 1 on wall row');
+      assert.strictEqual(screenChar(screen, 3, 17), '\u2502', 'vertical at stepRightX on wall');
+      assert.strictEqual(screenRow(screen, 3, 18, 22), 'hello', 'line 1 on wall row');
     });
   });
 
   // ── bottom-right CH=1 ─────────────────────────────────────────────────────
 
-  await t.test('bottom-right CH=1: junction row has topLeft+horiz at step entrance', function () {
+  await t.test('bottom-right CH=1: junction row has topRight at step entrance', function () {
     setup({}, function (screen, box) {
-      // xi=4,xl=24,yl=12, CW=5, stepLeftX=xl-CW-2=17
-      // junction@11: topLeft@17, ─@18-22, bottomRight@23 (keep)
+      // xi=4,xl=24,yl=12, CW=5, stepLeftX=xi+CW+1=10
+      // junction@11: keep └@4, ─@5-9, topRight@10, spaces@11-22, vertical@23
       box.setCutout('bottom-right', 'hello');
       screen.render();
-      assert.strictEqual(screenChar(screen, 11, 17), '\u250C', 'topLeft at stepLeftX on junction');
-      assert.strictEqual(screenChar(screen, 11, 18), '\u2500', 'horizontal on junction');
-      assert.strictEqual(screenChar(screen, 11, 23), '\u2518', 'bottomRight at xl-1 kept');
+      assert.strictEqual(screenChar(screen, 11, 10), '\u2510', 'topRight at stepLeftX on junction');
+      assert.strictEqual(screenChar(screen, 11, 11), ' ', 'space in step interior on junction');
+      assert.strictEqual(screenChar(screen, 11, 23), '\u2502', 'vertical at xl-1 on junction');
     });
   });
 
-  await t.test('bottom-right CH=1: closing row has bottomLeft+horiz+bottomRight then text', function () {
+  await t.test('bottom-right CH=1: closing row has text then bottomLeft+horiz+bottomRight', function () {
     setup({}, function (screen, box) {
-      // closing@12: bottomLeft@4, ─@5-16, bottomRight@17, text@18-22
+      // closing@12: text 'hello' right-aligned @5-9, bottomLeft@10, ─@11-22, bottomRight@23
       box.setCutout('bottom-right', 'hello');
       screen.render();
-      assert.strictEqual(screenChar(screen, 12, 4),  '\u2514', 'bottomLeft at xi on closing');
-      assert.strictEqual(screenChar(screen, 12, 17), '\u2518', 'bottomRight at stepLeftX on closing');
-      assert.strictEqual(screenRow(screen, 12, 18, 22), 'hello', 'text on closing row');
+      assert.strictEqual(screenRow(screen, 12, 5, 9), 'hello', 'text on closing row');
+      assert.strictEqual(screenChar(screen, 12, 10), '\u2514', 'bottomLeft at stepLeftX on closing');
+      assert.strictEqual(screenChar(screen, 12, 23), '\u2518', 'bottomRight at xl-1 on closing');
     });
   });
 
   await t.test('bottom-right CH=2: wall row has vertical and text', function () {
     setup({}, function (screen, box) {
-      // wall@12: vertical@17, text 'hello'@18-22
-      // closing@13: bottomLeft@4, ─@5-16, bottomRight@17, 'world'@18-22
+      // wall@12: text 'hello' right-aligned @5-9, vertical@10, vertical@23
+      // closing@13: text 'world' @5-9, bottomLeft@10, ─@11-22, bottomRight@23
       box.setCutout('bottom-right', 'hello\nworld');
       screen.render();
-      assert.strictEqual(screenChar(screen, 12, 17), '\u2502', 'vertical at stepLeftX on wall');
-      assert.strictEqual(screenRow(screen, 12, 18, 22), 'hello', 'line 0 on wall row');
-      assert.strictEqual(screenChar(screen, 13, 17), '\u2518', 'bottomRight at stepLeftX on closing');
-      assert.strictEqual(screenRow(screen, 13, 18, 22), 'world', 'line 1 on closing row');
+      assert.strictEqual(screenRow(screen, 12, 5, 9), 'hello', 'line 0 on wall row');
+      assert.strictEqual(screenChar(screen, 12, 10), '\u2502', 'vertical at stepLeftX on wall');
+      assert.strictEqual(screenRow(screen, 13, 5, 9), 'world', 'line 1 on closing row');
+      assert.strictEqual(screenChar(screen, 13, 10), '\u2514', 'bottomLeft at stepLeftX on closing');
     });
   });
 
   // ── bottom-left CH=1 ──────────────────────────────────────────────────────
 
-  await t.test('bottom-left CH=1: junction row has topRight at stepRightX', function () {
+  await t.test('bottom-left CH=1: junction row has topLeft at stepRightX', function () {
     setup({}, function (screen, box) {
-      // xi=4, stepRightX=xi+CW+1=4+5+1=10, junction@yl-1=11
-      // junction@11: bottomLeft@4 (keep), ─@5-9, topRight@10
+      // xi=4, stepRightX=xl-CW-2=24-5-2=17, junction@yl-1=11
+      // junction@11: vertical@4, spaces@5-16, topLeft@17, ─@18-22, keep ┘@23
       box.setCutout('bottom-left', 'hello');
       screen.render();
-      assert.strictEqual(screenChar(screen, 11, 4),  '\u2514', 'bottomLeft at xi kept');
-      assert.strictEqual(screenChar(screen, 11, 10), '\u2510', 'topRight at stepRightX on junction');
+      assert.strictEqual(screenChar(screen, 11, 4),  '\u2502', 'vertical at xi on junction');
+      assert.strictEqual(screenChar(screen, 11, 17), '\u250C', 'topLeft at stepRightX on junction');
     });
   });
 
-  await t.test('bottom-left CH=1: closing row has bottomLeft at stepRightX then rest of border', function () {
+  await t.test('bottom-left CH=1: closing row has bottomLeft+horiz+bottomRight then text', function () {
     setup({}, function (screen, box) {
-      // closing@12: text right-aligned at 5-9, bottomLeft@10, ─@11-22, bottomRight@23
+      // closing@12: bottomLeft@4, ─@5-16, bottomRight@17, text 'hello' left-aligned at 18-22
       box.setCutout('bottom-left', 'hello');
       screen.render();
-      assert.strictEqual(screenRow(screen, 12, 5, 9), 'hello', 'text right-aligned on closing row');
-      assert.strictEqual(screenChar(screen, 12, 10), '\u2514', 'bottomLeft at stepRightX on closing');
-      assert.strictEqual(screenChar(screen, 12, 23), '\u2518', 'bottomRight at xl-1 on closing');
+      assert.strictEqual(screenChar(screen, 12, 4),  '\u2514', 'bottomLeft at xi on closing');
+      assert.strictEqual(screenChar(screen, 12, 17), '\u2518', 'bottomRight at stepRightX on closing');
+      assert.strictEqual(screenRow(screen, 12, 18, 22), 'hello', 'text left-aligned on closing row');
     });
   });
 
-  await t.test('bottom-left CH=2: wall row has vertical and right-aligned text', function () {
+  await t.test('bottom-left CH=2: wall row has verticals and left-aligned text', function () {
     setup({}, function (screen, box) {
-      // wall@12: vertical@10, text 'hello' (right-aligned) at 5-9
-      // closing@13: text 'world' at 5-9, bottomLeft@10, ─@11-22, bottomRight@23
+      // wall@12: vertical@4, vertical@17, text 'hello' left-aligned at 18-22
+      // closing@13: bottomLeft@4, ─@5-16, bottomRight@17, text 'world' at 18-22
       box.setCutout('bottom-left', 'hello\nworld');
       screen.render();
-      assert.strictEqual(screenChar(screen, 12, 10), '\u2502', 'vertical at stepRightX on wall');
-      assert.strictEqual(screenRow(screen, 12, 5, 9), 'hello', 'line 0 right-aligned on wall row');
-      assert.strictEqual(screenRow(screen, 13, 5, 9), 'world', 'line 1 right-aligned on closing row');
-      assert.strictEqual(screenChar(screen, 13, 10), '\u2514', 'bottomLeft at stepRightX on closing');
+      assert.strictEqual(screenChar(screen, 12, 4),  '\u2502', 'vertical at xi on wall');
+      assert.strictEqual(screenChar(screen, 12, 17), '\u2502', 'vertical at stepRightX on wall');
+      assert.strictEqual(screenRow(screen, 12, 18, 22), 'hello', 'line 0 left-aligned on wall row');
+      assert.strictEqual(screenRow(screen, 13, 18, 22), 'world', 'line 1 left-aligned on closing row');
+      assert.strictEqual(screenChar(screen, 13, 17), '\u2518', 'bottomRight at stepRightX on closing');
     });
   });
 
   // ── short line alignment (bottom-left, right-aligned) ─────────────────────
 
-  await t.test('bottom-left: short line is right-aligned toward step', function () {
+  await t.test('bottom-left: short line is left-aligned toward step', function () {
     setup({}, function (screen, box) {
-      // 'hi\nhello' → CW=5. 'hi' right-aligned = '   hi'
+      // 'hi\nhello' → CW=5. 'hi' left-aligned = 'hi   '
+      // stepRightX = xl-CW-2 = 24-5-2=17, text at 18-22
       box.setCutout('bottom-left', 'hi\nhello');
       screen.render();
-      // wall row: 'hi' right-aligned in cols 5-9 → '   hi'
-      assert.strictEqual(screenRow(screen, 12, 5, 9), '   hi', 'short line right-aligned on wall row');
+      // wall row: 'hi' left-aligned in cols 18-22 → 'hi   '
+      assert.strictEqual(screenRow(screen, 12, 18, 22), 'hi   ', 'short line left-aligned on wall row');
     });
   });
 
@@ -285,9 +287,9 @@ test('_paintCutouts — screen output', async function (t) {
     setup({}, function (screen, box) {
       box.setCutout('top-right', 'X');
       screen.render();
-      // CW=1, stepLeftX=xl-1-2=21, stepTopY=3
-      // text 'X' at col 20 (stepLeftX-1) on row 3
-      var y = 3, x = 21 - 1;  // stepLeftX-CW = 24-1-2-1 = 20
+      // CW=1, stepLeftX=xi+CW+1=6, stepTopY=3
+      // text 'X' at col xi+1=5 on row 3
+      var y = 3, x = 5;
       var cellAttr = screen.lines[y][x][0];
       // bg bits are lower 9 bits; they should remain from whatever was there before
       // (in mock, bg is typically 0x1ff = transparent). The attr should have been modified
@@ -330,15 +332,15 @@ test('_paintCutouts — screen output', async function (t) {
   await t.test('two cutouts on different corners both render', function () {
     setup({}, function (screen, box) {
       // 'TR': CW=2, 'BL': CW=2
-      // top-right: stepLeftX=xl-CW-2=24-2-2=20, junction row@yi=4
-      // bottom-left: stepRightX=xi+CW+1=4+2+1=7, junction row@yl-1=11
+      // top-right: stepLeftX=xi+CW+1=4+2+1=7, junction row@yi=4
+      // bottom-left: stepRightX=xl-CW-2=24-2-2=20, junction row@yl-1=11
       box.setCutout('top-right', 'TR');
       box.setCutout('bottom-left', 'BL');
       screen.render();
-      // top-right junction row@4: bottomRight at col 20
-      assert.strictEqual(screenChar(screen, 4, 20), '\u2518', 'top-right junction char (bottomRight)');
-      // bottom-left junction row@11: topRight at col 7
-      assert.strictEqual(screenChar(screen, 11, 7), '\u2510', 'bottom-left junction char (topRight)');
+      // top-right junction row@4: bottomRight at col 7
+      assert.strictEqual(screenChar(screen, 4, 7), '\u2518', 'top-right junction char (bottomRight)');
+      // bottom-left junction row@11: topLeft at col 20
+      assert.strictEqual(screenChar(screen, 11, 20), '\u250C', 'bottom-left junction char (topLeft)');
     });
   });
 
@@ -349,14 +351,17 @@ test('_paintCutouts — screen output', async function (t) {
       box.setCutout('bottom-right', 'BR');
       box.setCutout('bottom-left', 'BL');
       assert.doesNotThrow(function () { screen.render(); });
-      // top-right junction@4: bottomRight at xl-CW-2 = 24-2-2=20
-      assert.strictEqual(screenChar(screen, 4, 20), '\u2518', 'top-right bottomRight');
-      // top-left junction@4: bottomLeft at xi+CW+1 = 4+2+1=7
-      assert.strictEqual(screenChar(screen, 4, 7), '\u2514', 'top-left bottomLeft');
-      // bottom-right junction@11: topLeft at xl-CW-2 = 20
-      assert.strictEqual(screenChar(screen, 11, 20), '\u250C', 'bottom-right topLeft');
-      // bottom-left junction@11: topRight at xi+CW+1 = 7
-      assert.strictEqual(screenChar(screen, 11, 7), '\u2510', 'bottom-left topRight');
+      // With wide steps, same-edge cutouts overlap on the shared junction row.
+      // Paint order is insertion order; last-painted characters survive.
+      // Check surviving characters (left-side cutouts paint after right-side):
+      // top-left junction@4: bottomLeft at xl-CW-2 = 20 (survives, painted after top-right)
+      assert.strictEqual(screenChar(screen, 4, 20), '\u2514', 'top-left bottomLeft');
+      // bottom-left junction@11: topLeft at xl-CW-2 = 20 (survives, painted after bottom-right)
+      assert.strictEqual(screenChar(screen, 11, 20), '\u250C', 'bottom-left topLeft');
+      // top-right step top@3: topRight at xl-1=23 (unique column, survives)
+      assert.strictEqual(screenChar(screen, 3, 23), '\u2510', 'top-right topRight on step top');
+      // bottom-left closing@12: bottomLeft at xi=4 (unique column, survives)
+      assert.strictEqual(screenChar(screen, 12, 4), '\u2514', 'bottom-left bottomLeft on closing');
     });
   });
 
@@ -367,10 +372,10 @@ test('_paintCutouts — screen output', async function (t) {
       box.setCutout('top-right', 'X');
       screen.render();
       // junction@4: should use heavy bottomRight = ┛ (U+251B)
-      // stepLeftX = xl-CW-2 = 24-1-2=21
-      assert.strictEqual(screenChar(screen, 4, 21), '\u251B', 'heavy bottomRight on junction');
-      // step top@3: should use heavy topLeft = ┏ (U+250F) at col 21
-      assert.strictEqual(screenChar(screen, 3, 21), '\u250F', 'heavy topLeft on step top');
+      // stepLeftX = xi+CW+1 = 4+1+1=6
+      assert.strictEqual(screenChar(screen, 4, 6), '\u251B', 'heavy bottomRight on junction');
+      // step top@3: should use heavy topLeft = ┏ (U+250F) at col 6
+      assert.strictEqual(screenChar(screen, 3, 6), '\u250F', 'heavy topLeft on step top');
     });
   });
 
@@ -378,8 +383,8 @@ test('_paintCutouts — screen output', async function (t) {
     setup({ border: { type: 'line', charset: 'double' } }, function (screen, box) {
       box.setCutout('bottom-left', 'X');
       screen.render();
-      // junction@11: topRight at stepRightX=xi+CW+1=4+1+1=6 → should be ╗ (U+2557)
-      assert.strictEqual(screenChar(screen, 11, 6), '\u2557', 'double topRight on junction');
+      // junction@11: topLeft at stepRightX=xl-CW-2=24-1-2=21 → should be ╔ (U+2554)
+      assert.strictEqual(screenChar(screen, 11, 21), '\u2554', 'double topLeft on junction');
     });
   });
 
