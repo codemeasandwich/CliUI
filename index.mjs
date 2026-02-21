@@ -23,7 +23,8 @@ export const {
   OutputBuffer,
   InputBuffer,
   createScreen,
-  serverError
+  serverError,
+  charsets
 } = galactica;
 
 // Blessed core exports
