@@ -27,6 +27,9 @@ exports.stackedBar = require('./lib/widget/charts/stacked-bar')
 exports.line = require('./lib/widget/charts/line')
 exports.scatter = require('./lib/widget/charts/scatter')
 
+exports.charsets = require('./lib/border/charsets');
+require('./lib/border/cutout'); // patches Element.prototype on import
+
 exports.OutputBuffer = require('./lib/server-utils').OutputBuffer
 exports.InputBuffer = require('./lib/server-utils').InputBuffer
 exports.createScreen = require('./lib/server-utils').createScreen
