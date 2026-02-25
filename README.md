@@ -86,6 +86,8 @@ See [COOKBOOK.md](./COOKBOOK.md) for detailed widget documentation including:
 
 **Widgets:** Line Chart, Scatter Plot, Bar Chart, Stacked Bar, Map, Gauge, Donut, LCD Display, Rolling Log, Picture, Sparkline, Table, Tree, Markdown
 
+**Borders:** [Corner Cutouts](./COOKBOOK.md#corner-cutouts), [Border Charsets](./COOKBOOK.md#border-charsets)
+
 **Layouts:** Grid, Carousel
 
 ## Troubleshooting

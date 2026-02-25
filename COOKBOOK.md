@@ -525,3 +525,172 @@ One use case is an office dashboard with rotating views:
     carousel.start()
 
 `````
+
+---
+
+## Border Charsets
+
+Choose from built-in border character sets or provide your own. Charsets apply to cutout step borders and are specified via the `charset` option on any bordered element.
+
+`````javascript
+   var box = galactica.box({
+     border: { type: 'line', charset: 'heavy' },
+     content: 'Heavy borders'
+   })
+`````
+
+### Built-in Charsets
+
+| Name | Characters | Example |
+|------|-----------|---------|
+| `'light'` | `┌ ┐ └ ┘ ─ │` | Default when `charset` is omitted |
+| `'heavy'` | `┏ ┓ ┗ ┛ ━ ┃` | Bold/thick borders |
+| `'double'` | `╔ ╗ ╚ ╝ ═ ║` | Double-line borders |
+| `'rounded'` | `╭ ╮ ╰ ╯ ─ │` | Rounded corners |
+
+### Custom Charset
+
+Pass an object with all six character keys:
+
+`````javascript
+   var box = galactica.box({
+     border: {
+       type: 'line',
+       charset: {
+         topLeft: '╭', topRight: '╮',
+         bottomLeft: '╰', bottomRight: '╯',
+         horizontal: '─', vertical: '│'
+       }
+     }
+   })
+`````
+
+---
+
+## Corner Cutouts
+
+Attach text to any corner of a bordered element. The border steps around the text, creating an L-shaped notch. The text renders outside the border with a transparent background.
+
+`````
+                 cutout here ┌───────────────────────┐
+  ┌──────────────────────────┘                       │
+  │ content                                          │
+  │                                                  │
+  └──────────────────────────────────────────────────┘
+`````
+
+### `setCutout(position, content, [style])`
+
+`````javascript
+   var box = galactica.box({
+     border: { type: 'line' },
+     content: 'Hello world'
+   })
+
+   // Single line cutout
+   box.setCutout('top-right', 'Status: OK')
+
+   // Multi-line cutout
+   box.setCutout('bottom-left', 'v1.0.0\nstable')
+
+   // With custom foreground color
+   box.setCutout('top-right', 'Alert!', { fg: 'red' })
+`````
+
+**Positions:** `'top-left'`, `'top-right'`, `'bottom-left'`, `'bottom-right'`
+
+Setting the same corner twice replaces the previous cutout.
+
+### `clearCutout(position)`
+
+`````javascript
+   box.clearCutout('top-right')
+`````
+
+### Inner Tab Space
+
+When a cutout has 2+ lines, a bordered space exists beside the cutout text inside the step. Use `getCutoutInner()` to get its absolute screen bounds and place content there:
+
+`````
+  ░▀█▀▒▄▀▄▒█▀▄░▄▀▀ ┌───────────────────────────────────────────────┐
+  ░▒█▒░█▀█░█▀▄▒▄██ │ F1 Spec  F2 Plan  F3 Run  F4 Task            │  ← inner tab space
+  ┌─────────────────┘───────────────────────────────────────────────┤
+  │ content                                                         │
+  └─────────────────────────────────────────────────────────────────┘
+`````
+
+### `getCutoutInner(position)`
+
+Returns `{ top, left, width, height }` in absolute screen coordinates, or `null` if no cutout is set or the cutout has only 1 line (no usable inner space).
+
+`````javascript
+   box.setCutout('top-right', 'LOGO LINE 1\nLOGO LINE 2')
+
+   screen.render()
+
+   var inner = box.getCutoutInner('top-right')
+   // → { top: 3, left: 20, width: 74, height: 1 }
+   // → null if no cutout or single-line cutout
+
+   if (inner) {
+     var tabBar = galactica.box({
+       parent: screen,
+       top: inner.top,
+       left: inner.left,
+       width: inner.width,
+       height: inner.height,
+       content: 'F1 Spec  F2 Plan  F3 Run  F4 Task',
+       style: { transparent: true, fg: 'white' }
+     })
+   }
+`````
+
+Parent the inner content to `screen` (not the box) and use the absolute coordinates from `getCutoutInner()`. Reposition on resize:
+
+`````javascript
+   screen.on('resize', function() {
+     screen.render()
+     var inner = box.getCutoutInner('top-right')
+     if (inner && tabBar) {
+       tabBar.top = inner.top
+       tabBar.left = inner.left
+       tabBar.width = inner.width
+     }
+     screen.render()
+   })
+`````
+
+| Lines | Inner rows | Notes |
+|-------|-----------|-------|
+| 1 | 0 | No inner space. `getCutoutInner()` returns `null`. |
+| 2 | 1 | One usable row beside the cutout. |
+| 3 | 2 | Two usable rows, etc. |
+
+### Text Alignment
+
+Short lines align toward the step border (flush against the box edge):
+
+| Position | Text extends | Short lines align |
+|----------|-------------|-------------------|
+| `top-right` | leftward | right |
+| `top-left` | rightward | left |
+| `bottom-right` | rightward | left |
+| `bottom-left` | leftward | right |
+
+### All Four Corners
+
+`````
+                        text ┌─────────────────────────┐  text ┌───────────────────────┐
+  ┌──────────────────────────┘                         │  │    └───────────────────────┤
+  │               top-right                            │  │          top-left           │
+  │                                                    │  │                             │
+  └────────────────────────────────────────────────────┘  └─────────────────────────────┘
+
+  ┌────────────────────────────────────────────────────┐  ┌─────────────────────────────┐
+  │                                                    │  │                             │
+  │            bottom-right                            │  │        bottom-left          │
+  │                    ┌───────────────────────────────┘  └───────────────────────┐     │
+  └────────────────────┘ text                             text                    └─────┘
+`````
+
+**Examples:** [cutout-quick.js](./examples/cutout-quick.js), [cutout-tabbar.js](./examples/cutout-tabbar.js)
