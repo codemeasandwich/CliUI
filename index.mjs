@@ -46,7 +46,8 @@ export const {
   wrapScreenRender,
   resolveTTYOutput,
   resolveTTYInput,
-  ensureRawMode
+  ensureRawMode,
+  resolveTerminalIO
 } = galactica;
 
 // Blessed core exports
