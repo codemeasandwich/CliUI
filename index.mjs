@@ -6,7 +6,9 @@ export const {
   carousel,
   createPageFactory,
   createDashboardCarousel,
-  createChrome
+  createChrome,
+  computePageLayout,
+  GRID_COORD_MAP
 } = galactica;
 
 // Widgets exports
@@ -49,6 +51,11 @@ export const {
   resolveTTYInput,
   ensureRawMode,
   resolveTerminalIO
+} = galactica;
+
+// Utils exports
+export const {
+  displayWidth
 } = galactica;
 
 // Blessed core exports

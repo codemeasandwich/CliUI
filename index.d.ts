@@ -604,5 +604,111 @@ declare namespace Galactica {
 
     export function donut(options?: Widgets.DonutOptions): Widgets.DonutElement
 
+    // ── Display-width utility ─────────────────────────────────────────
+    // Character-width detection for combining characters, double-wide CJK/emoji,
+    // and terminal cell measurement. Used by chrome.js for combining-char-safe
+    // painting and by consumers for display-width calculations.
+
+    export namespace displayWidth {
+        /** Check whether a Unicode code point is a combining character (zero-width). */
+        function isCombining(cp: number): boolean;
+        /** Terminal cell width of a single Unicode code point (0, 1, or 2). */
+        function charWidth(cp: number): number;
+        /** Terminal display width of a string (total cell columns consumed). */
+        function displayWidth(str: string): number;
+        /** Slice a string by terminal cell columns, not JavaScript char indices. */
+        function sliceCells(str: string, start: number, width: number): string;
+    }
+
+    // ── Page layout computation ───────────────────────────────────────
+    // Proportional layout engine that computes widget positions for any screen
+    // size by scaling from the 120×40 baseline. Returns layout specs consumed
+    // by chrome.setLayout / chrome.setPage.
+
+    /** Grid coordinate → widget name mappings per page. Keys are 'row,col,rowSpan,colSpan'. */
+    export const GRID_COORD_MAP: {
+        [page: string]: { [gridKey: string]: string };
+    };
+
+    /** Widget position descriptor returned by computePageLayout. */
+    export interface WidgetPosition {
+        top: number;
+        left: number;
+        width: number;
+        height: number;
+        titleY: number;
+        titleX: number;
+    }
+
+    /** Separator descriptor for horizontal rules with tee junctions. */
+    export interface SeparatorSpec {
+        y: number;
+        cols: number[];
+        dir: 'down' | 'up' | 'heavy';
+    }
+
+    /** Vertical divider descriptor between widget columns. */
+    export interface DividerSpec {
+        col: number;
+        fromY: number;
+        toY: number;
+    }
+
+    /** Full layout specification for a dashboard page. */
+    export interface PageLayoutSpec {
+        page: string;
+        separators: SeparatorSpec[];
+        dividers: DividerSpec[];
+        widgets: { [name: string]: WidgetPosition };
+        staticPipes?: any[] | null;
+        statusRow?: number;
+        phaseFlow?: any;
+    }
+
+    /**
+     * Compute the full layout for a dashboard page at the given screen dimensions.
+     * At 120×40 returns exact hand-derived baselines; at other sizes uses
+     * proportional scaling.
+     */
+    export function computePageLayout(
+        pageName: 'spec' | 'plan' | 'run' | 'task' | 'errors' | 'perf',
+        cols: number,
+        rows: number
+    ): PageLayoutSpec | null;
+
+    // ── Chrome frame ──────────────────────────────────────────────────
+    // L-shaped terminal border renderer that paints logo, heavy frame,
+    // separators, dividers, footer, and static fixups into screen.lines.
+
+    export interface ChromeOptions {
+        /** Up to 2 lines of logo text. Combining characters (U+0300-U+036F) are handled. */
+        logo?: string[];
+        /** Footer text placed after the ┛ on the bottom row. */
+        footer?: string;
+        /** L-step column as a fraction of screen width. Default 38/120. */
+        stepRatio?: number;
+        /** Column width of the logo area. Default 16. */
+        logoWidth?: number;
+    }
+
+    export interface ChromeInstance {
+        /** Borderless full-screen box — parent element for all dashboard widgets. */
+        element: Blessed.Widgets.BoxElement;
+        /** Set the page-specific layout for separator, divider, and fixup painting. */
+        setLayout(spec: PageLayoutSpec): void;
+        /** Set the current page by name — internally calls computePageLayout. */
+        setPage(pageName: 'spec' | 'plan' | 'run' | 'task' | 'errors' | 'perf'): void;
+        /** Get the inner bounds for a cutout zone (e.g. tab bar area). */
+        getCutoutInner(position: 'top-right'): { top: number; left: number; width: number; height: number } | null;
+        /** No-op — preserved for API compatibility. */
+        setCutout(): void;
+    }
+
+    /** Create an L-shaped chrome frame for a dashboard screen. */
+    export function createChrome(
+        screen: Blessed.Widgets.Screen,
+        opts: ChromeOptions
+    ): ChromeInstance;
+
 }
 

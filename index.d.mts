@@ -114,6 +114,30 @@ export declare const node: any;
 export declare const ListBar: typeof Blessed.Widgets.ListbarElement;
 export declare const PNG: typeof Blessed.Widgets.ANSIImageElement;
 
+// Layout utilities
+export declare const createPageFactory: (options?: any) => any;
+export declare const createDashboardCarousel: (options?: any) => any;
+export declare const createChrome: typeof Galactica.createChrome;
+
+// Display-width utility — combining character detection, cell width, display width
+export declare const displayWidth: typeof Galactica.displayWidth;
+
+// Page layout computation — proportional page layout engine
+export declare const computePageLayout: typeof Galactica.computePageLayout;
+export declare const GRID_COORD_MAP: typeof Galactica.GRID_COORD_MAP;
+
+// Safe render wrapper
+export declare const wrapScreenRender: (screen: any) => any;
+
+// TTY resolution helpers
+export declare const resolveTTYOutput: (options?: any) => any;
+export declare const resolveTTYInput: (options?: any) => any;
+export declare const ensureRawMode: (stream: any) => void;
+export declare const resolveTerminalIO: (options?: any) => any;
+
+// Border charsets
+export declare const charsets: any;
+
 // Default export
 declare const _default: typeof Galactica;
 export default _default;

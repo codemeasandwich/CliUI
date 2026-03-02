@@ -42,3 +42,10 @@ exports.resolveTTYOutput = require('./lib/utils/tty-resolve').resolveTTYOutput
 exports.resolveTTYInput = require('./lib/utils/tty-resolve').resolveTTYInput
 exports.ensureRawMode = require('./lib/utils/tty-resolve').ensureRawMode
 exports.resolveTerminalIO = require('./lib/utils/tty-resolve').resolveTerminalIO
+
+// Display-width utility — combining character detection, cell width, display width
+exports.displayWidth = require('./lib/utils/display-width')
+
+// Layout computation — proportional page layout engine
+exports.computePageLayout = require('./lib/layout/page-compute').computePageLayout
+exports.GRID_COORD_MAP = require('./lib/layout/page-compute').GRID_COORD_MAP
