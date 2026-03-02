@@ -1,11 +1,15 @@
 import galactica from './index.js';
 
-// Galactica widget exports
+// Layout exports
 export const {
   grid,
   carousel,
   createPageFactory,
-  createDashboardCarousel,
+  createDashboardCarousel
+} = galactica;
+
+// Widgets exports
+export const {
   map,
   canvas,
   gauge,
@@ -17,16 +21,28 @@ export const {
   sparkline,
   table,
   tree,
-  markdown,
+  markdown
+} = galactica;
+
+// Charts exports
+export const {
   bar,
   stackedBar,
   line,
-  scatter,
+  scatter
+} = galactica;
+
+// Border exports
+export const {
+  charsets
+} = galactica;
+
+// Server Utils exports
+export const {
   OutputBuffer,
   InputBuffer,
   createScreen,
   serverError,
-  charsets,
   wrapScreenRender,
   resolveTTYOutput,
   resolveTTYInput,
@@ -85,9 +101,14 @@ export const {
 
 // Blessed widget factory functions (lowercase)
 export const {
+  node,
   screen,
+  element,
   box,
   text,
+  scrollablebox,
+  scrollabletext,
+  bigtext,
   list,
   form,
   input,
@@ -110,12 +131,7 @@ export const {
   ansiimage,
   overlayimage,
   video,
-  layout,
-  scrollablebox,
-  scrollabletext,
-  bigtext,
-  element,
-  node
+  layout
 } = galactica;
 
 // Blessed aliases

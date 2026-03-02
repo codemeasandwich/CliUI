@@ -36,7 +36,8 @@
     "test:lint": "npm run lint",
     "release": "bash scripts/publish.sh",
     "lint": "eslint lib",
-    "lint:fix": "eslint lib --fix"
+    "lint:fix": "eslint lib --fix",
+    "generate:esm": "node scripts/generate-esm.js"
   },
   "repository": {
     "type": "git",
