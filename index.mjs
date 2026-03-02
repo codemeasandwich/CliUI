@@ -29,7 +29,8 @@ export const {
   charsets,
   wrapScreenRender,
   resolveTTYOutput,
-  resolveTTYInput
+  resolveTTYInput,
+  ensureRawMode
 } = galactica;
 
 // Blessed core exports
