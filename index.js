@@ -47,6 +47,13 @@ exports.resolveTerminalIO = require('./lib/utils/tty-resolve').resolveTerminalIO
 // Display-width utility — combining character detection, cell width, display width
 exports.displayWidth = require('./lib/utils/display-width')
 
+// Slot-layout utility — fixed-width padding, field joining, proportional scaling
+var slotLayout = require('./lib/utils/slot-layout')
+exports.fitToWidth = slotLayout.fitToWidth
+exports.joinFields = slotLayout.joinFields
+exports.scaleWidths = slotLayout.scaleWidths
+exports.renderSlotRow = slotLayout.renderSlotRow
+
 // Layout computation — proportional page layout engine
 exports.computePageLayout = require('./lib/layout/page-compute').computePageLayout
 exports.GRID_COORD_MAP = require('./lib/layout/page-compute').GRID_COORD_MAP

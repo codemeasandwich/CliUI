@@ -122,6 +122,12 @@ export declare const createChrome: typeof Galactica.createChrome;
 // Display-width utility — combining character detection, cell width, display width
 export declare const displayWidth: typeof Galactica.displayWidth;
 
+// Slot-layout utilities — fixed-width padding, field joining, proportional scaling
+export declare const fitToWidth: (str: string, width: number) => string;
+export declare const joinFields: (fields: [string, number][], separator?: string) => string;
+export declare const scaleWidths: (baseWidths: number[], newSlotSpace: number) => number[];
+export declare const renderSlotRow: (items: any[], slotWidths: number[], formatter: (item: any, slotWidth: number, index: number) => string, separator?: string) => string;
+
 // Page layout computation — proportional page layout engine
 export declare const computePageLayout: typeof Galactica.computePageLayout;
 export declare const GRID_COORD_MAP: typeof Galactica.GRID_COORD_MAP;
