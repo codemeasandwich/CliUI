@@ -5,7 +5,8 @@ export const {
   grid,
   carousel,
   createPageFactory,
-  createDashboardCarousel
+  createDashboardCarousel,
+  createChrome
 } = galactica;
 
 // Widgets exports
