@@ -7,6 +7,7 @@ Object.keys(blessed).forEach(function(key) {
 exports.grid = require('./lib/layout/grid')
 exports.carousel = require('./lib/layout/carousel')
 exports.createPageFactory = require('./lib/layout/page-factory')
+exports.createDashboardCarousel = require('./lib/layout/dashboard-carousel')
 
 exports.map = require('./lib/widget/map')
 exports.canvas = require('./lib/widget/canvas')

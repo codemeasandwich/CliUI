@@ -5,6 +5,7 @@ export const {
   grid,
   carousel,
   createPageFactory,
+  createDashboardCarousel,
   map,
   canvas,
   gauge,
