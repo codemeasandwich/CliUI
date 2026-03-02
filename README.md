@@ -88,7 +88,7 @@ See [COOKBOOK.md](./COOKBOOK.md) for detailed widget documentation including:
 
 **Borders:** [Corner Cutouts](./COOKBOOK.md#corner-cutouts), [Border Charsets](./COOKBOOK.md#border-charsets)
 
-**Layouts:** Grid, Carousel
+**Layouts:** [Grid](./COOKBOOK.md#grid), [Computed Grid](./COOKBOOK.md#computed-grid), [Carousel](./COOKBOOK.md#carousel)
 
 ## Troubleshooting
 

@@ -23,6 +23,7 @@ Detailed widget documentation and examples for Galactica.
 ## Layouts
 
 - [Grid](#grid)
+- [Computed Grid](#computed-grid)
 - [Carousel](#carousel)
 
 ---
@@ -473,6 +474,47 @@ Each widget can span multiple rows and columns.
 
    screen.render()
 `````
+
+---
+
+## Computed Grid
+
+A proportional layout engine that positions widgets at exact terminal cell coordinates scaled from a 120×40 baseline, rather than using percentage-based positioning.
+
+The key difference from Grid is **label extraction**: templates require titles on a separate row above the box border (e.g. `  Phase Timeline` on row 4, `┌──┐` on row 5). Galactica normally embeds labels in borders (`┌─ Label ─┐`). Computed Grid intercepts the `label` from widget opts, creates a separate title `box()` element above the bordered widget, and monkey-patches `setLabel()` so dynamic label updates (from widgets like task-tracker) are redirected to the title element instead of the border.
+
+Falls back to the percentage-based Grid when no computed layout exists for the requested page name.
+
+### API
+
+`````javascript
+   var galactica = require('galactica')
+   var screen = galactica.screen()
+
+   // Create a computed grid for a named page layout
+   var cGrid = galactica.createComputedGrid(screen, 'spec')
+
+   // Same .set() API as Grid — positions come from the computed layout
+   // Labels are automatically extracted and rendered above the border
+   var timeline = cGrid.set(0, 0, 4, 6, galactica.line, {label: 'Phase Timeline'})
+   var tasks = cGrid.set(0, 6, 4, 6, galactica.table, {label: 'Task Tracker'})
+
+   // Dynamic label updates go to the title element, not the border
+   tasks.setLabel('Task Tracker [3/5]')
+
+   screen.render()
+`````
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `parent` | Object | — | Galactica screen or chrome box instance |
+| `pageName` | string | `'spec'` | Page identifier matching a layout in `computePageLayout` |
+
+### `.set(row, col, rowSpan, colSpan, factory, opts)`
+
+Same signature as `Grid.set()`. The grid coordinates are mapped to widget names via `GRID_COORD_MAP`, then looked up in the computed layout. Each layout entry provides `top`, `left`, `width`, `height` for the bordered box and `titleY`, `titleX` for the title text position.
 
 ---
 

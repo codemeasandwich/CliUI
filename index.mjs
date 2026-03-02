@@ -3,6 +3,7 @@ import galactica from './index.js';
 // Layout exports
 export const {
   grid,
+  createComputedGrid,
   carousel,
   createPageFactory,
   createDashboardCarousel,
