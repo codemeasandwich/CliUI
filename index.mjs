@@ -27,7 +27,9 @@ export const {
   createScreen,
   serverError,
   charsets,
-  wrapScreenRender
+  wrapScreenRender,
+  resolveTTYOutput,
+  resolveTTYInput
 } = galactica;
 
 // Blessed core exports
