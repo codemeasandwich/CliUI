@@ -90,6 +90,8 @@ See [COOKBOOK.md](./COOKBOOK.md) for detailed widget documentation including:
 
 **Layouts:** [Grid](./COOKBOOK.md#grid), [Computed Grid](./COOKBOOK.md#computed-grid), [Carousel](./COOKBOOK.md#carousel)
 
+**Utilities:** [Slot Layout](./COOKBOOK.md#slot-layout) — fixed-width field padding, proportional scaling, row builders for status/tab bars
+
 ## Troubleshooting
 
 If you see question marks or missing characters try running with these env vars:

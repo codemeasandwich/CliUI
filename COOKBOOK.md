@@ -736,3 +736,169 @@ Short lines align toward the step border (flush against the box edge):
 `````
 
 **Examples:** [cutout-quick.js](./examples/cutout-quick.js), [cutout-tabbar.js](./examples/cutout-tabbar.js)
+
+---
+
+## Utilities
+
+- [Slot Layout](#slot-layout)
+
+---
+
+## Slot Layout
+
+Fixed-width slot layout utilities for terminal dashboard widgets. Dashboard chrome paints separator characters (`║`, `│`, `─`) at fixed screen columns **after** widgets render. If widget text is not padded to exact slot widths, separators overwrite mid-word characters (e.g. `SCAN` → `SC║N`). These utilities ensure widget content fills its allocated slot exactly, so chrome separators land on single-space boundaries between slots.
+
+All width calculations handle CJK double-wide characters, combining marks, and emoji via the `displayWidth` utility. Blessed tags (`{green-fg}`, `{/bold}`, etc.) are treated as zero-width — stripped for measurement, preserved in output.
+
+### `fitToWidth(str, width)`
+
+Pad or truncate a string to an exact terminal display width.
+
+`````javascript
+var galactica = require('galactica')
+
+// Pad short strings to fill the slot
+galactica.fitToWidth('SCAN', 10)    // → 'SCAN      '  (6 trailing spaces)
+
+// Truncate long strings at the boundary
+galactica.fitToWidth('SCANNING PHASE', 10) // → 'SCANNING P'
+
+// Blessed tags are zero-width — preserved in output, excluded from measurement
+galactica.fitToWidth('{green-fg}OK{/green-fg}', 6) // → '{green-fg}OK{/green-fg}    '
+`````
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `str` | string | Input string (may contain blessed tags) |
+| `width` | number | Target display width in terminal cells |
+
+**Returns:** String whose visible width is exactly `width` cells.
+
+### `joinFields(fields, [separator])`
+
+Join `[value, slotWidth]` pairs with a separator character, padding each value to its exact slot width.
+
+`````javascript
+var galactica = require('galactica')
+
+// Status bar with │ separators (default)
+galactica.joinFields([
+  ['S:56 O:7', 12],
+  ['CPU: 23%', 10],
+  ['MEM: 1.2G', 10]
+])
+// → 'S:56 O:7    │CPU: 23%  │MEM: 1.2G '
+
+// Phase flow with space separator (chrome overwrites with ║)
+galactica.joinFields([
+  ['SCAN',  8],
+  ['BUILD', 8],
+  ['TEST',  8]
+], ' ')
+// → 'SCAN     BUILD    TEST    '
+`````
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `fields` | Array<[string, number]> | — | Array of `[value, slotWidth]` pairs |
+| `separator` | string | `'│'` | Separator character between fields |
+
+**Returns:** Content string with separators at exact column positions.
+
+### `scaleWidths(baseWidths, newSlotSpace)`
+
+Proportionally scale baseline field widths to fit a new total slot space. Each field (except the last) is scaled via `Math.round`, preserving its proportion of the baseline total. The last field absorbs rounding error so the returned array always sums to exactly `newSlotSpace`.
+
+`````javascript
+var galactica = require('galactica')
+
+// Baseline widths designed at 120 columns, scaled to 80
+var base = [30, 30, 30, 30]
+galactica.scaleWidths(base, 80) // → [20, 20, 20, 20]
+
+// Rounding remainder absorbed by last field
+galactica.scaleWidths([10, 10, 10], 25) // → [8, 8, 9]
+`````
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `baseWidths` | number[] | Baseline field widths (e.g. at 120×40) |
+| `newSlotSpace` | number | Target total slot space at the current size |
+
+**Returns:** Scaled widths summing to exactly `newSlotSpace`.
+
+### `renderSlotRow(items, slotWidths, formatter, [separator])`
+
+Render items into fixed-width slots via a formatter callback. Each item is formatted by the callback, then padded to its assigned slot width.
+
+`````javascript
+var galactica = require('galactica')
+
+var phases = [
+  { name: 'SCAN',  pct: 100 },
+  { name: 'BUILD', pct: 45 },
+  { name: 'TEST',  pct: 0 }
+]
+
+var widths = [12, 12, 12]
+
+var row = galactica.renderSlotRow(phases, widths, function (phase, w, i) {
+  return phase.name + ' ' + phase.pct + '%'
+})
+// → 'SCAN 100%    BUILD 45%    TEST 0%     '
+`````
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `items` | Array | — | Data items to render (e.g. phase objects) |
+| `slotWidths` | number[] | — | Per-slot display widths. Items beyond the array fall back to 12. |
+| `formatter` | Function | — | `(item, slotWidth, index) => string` — produces raw label before padding |
+| `separator` | string | `' '` | Join character between padded slots |
+
+**Returns:** Rendered row with items at fixed column positions.
+
+### `buildFieldRow(fields, contentWidth, [opts])`
+
+High-level row builder that deducts separator space, computes final field widths (proportional or fixed-absorb), pads each field, and joins with the separator. Encapsulates the boilerplate shared by status-bar and tab-bar widgets.
+
+**Two width strategies:**
+
+- **Proportional** (default): Baseline widths are scaled via `scaleWidths()` to fill available space. Used by tab-bar where field proportions must adapt to varying terminal sizes.
+- **Fixed + absorb** (`opts.fixedWidths = true`): Field widths are used as-is for all fields except the last, which absorbs remaining space. Used by status-bar where most fields are fixed-width and only the last field (e.g. keyboard legend) flexes.
+
+`````javascript
+var galactica = require('galactica')
+
+// Proportional — tab bar adapting to 80-column terminal
+var tabRow = galactica.buildFieldRow([
+  ['F1 Spec',   30],
+  ['F2 Plan',   30],
+  ['F3 Run',    30],
+  ['F4 Tasks',  30]
+], 80)
+// Fields scaled proportionally to fill 80 cols minus separator space
+
+// Fixed + absorb — status bar with fixed fields + flexible last field
+var statusRow = galactica.buildFieldRow([
+  ['S:56 O:7',    12],
+  ['CPU: 23%',    10],
+  ['↑↓ Navigate', 40]
+], 80, { fixedWidths: true })
+// First two fields are exactly 12 and 10 wide; last field absorbs the rest
+
+// Custom separator
+var row = galactica.buildFieldRow([
+  ['SCAN',  20],
+  ['BUILD', 20]
+], 42, { separator: ' ' })
+`````
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `fields` | Array<[string, number]> | — | `[content, baselineWidth]` pairs |
+| `contentWidth` | number | — | Total available width for fields + separators |
+| `opts.separator` | string | `'│'` | Join character between fields |
+| `opts.fixedWidths` | boolean | `false` | When `true`, use declared widths as-is and make the last field absorb remaining space |
+
+**Returns:** Content string of exactly `contentWidth` display cells.
