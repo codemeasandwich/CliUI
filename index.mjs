@@ -4,6 +4,7 @@ import galactica from './index.js';
 export const {
   grid,
   carousel,
+  createPageFactory,
   map,
   canvas,
   gauge,
