@@ -53,6 +53,7 @@ exports.fitToWidth = slotLayout.fitToWidth
 exports.joinFields = slotLayout.joinFields
 exports.scaleWidths = slotLayout.scaleWidths
 exports.renderSlotRow = slotLayout.renderSlotRow
+exports.buildFieldRow = slotLayout.buildFieldRow
 
 // Layout computation — proportional page layout engine
 exports.computePageLayout = require('./lib/layout/page-compute').computePageLayout
