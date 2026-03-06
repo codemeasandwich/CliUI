@@ -18,14 +18,14 @@ Friendly to terminals, ssh and developers. Features custom drawille rendering an
 
 <img src="./docs/images/term3.gif" alt="term" width="800">
 
-([source code](./examples/dashboard.js))
+([source code](./examples/dashboards/dashboard.js))
 
 **Running the demo**
 
     git clone https://github.com/codemeasandwich/CliUI.git
     cd CliUI
     npm install
-    node ./examples/dashboard.js
+    node ./examples/dashboards/dashboard.js
 
 Works on Linux, OS X and Windows. For Windows follow the [pre requisites](http://webservices20.blogspot.co.il/2015/04/running-terminal-dashboards-on-windows.html).
 
@@ -84,7 +84,7 @@ scr.render()
 
 See [COOKBOOK.md](./COOKBOOK.md) for detailed widget documentation including:
 
-**Widgets:** Line Chart, Scatter Plot, Bar Chart, Stacked Bar, Map, Gauge, Donut, LCD Display, Rolling Log, Picture, Sparkline, Table, Tree, Markdown
+**Widgets:** Line Chart, Scatter Plot, Bar Chart, Stacked Bar, Map, Gauge, Donut, LCD Display, Rolling Log, Picture, Sparkline, Table, Tree, Markdown, [Diagram](./COOKBOOK.md#diagram)
 
 **Borders:** [Corner Cutouts](./COOKBOOK.md#corner-cutouts), [Border Charsets](./COOKBOOK.md#border-charsets)
 
@@ -107,3 +107,5 @@ This library is under the [MIT License](http://opensource.org/licenses/MIT)
 
 **Maintained by [Brian Shannon](https://www.linkedin.com/in/brianshann/)**
 [Bluesky](https://bsky.app/profile/codemeasandwich.bsky.social) • [GitHub](https://github.com/codemeasandwich)
+
+http://xahlee.info/comp/unicode_drawing_shapes.html

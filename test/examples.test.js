@@ -9,30 +9,31 @@ var galacticaMock = require('./helpers/galactica-mock');
 var TimerController = require('./helpers/timer-control');
 
 var examplesDir = path.join(__dirname, '..', 'examples');
-var inlineDataDir = path.join(examplesDir, 'inline-data');
 
 function discoverExamples () {
   var examples = [];
 
-  fs.readdirSync(examplesDir).forEach(function (file) {
-    if (file.endsWith('.js')) {
-      examples.push({
-        name: file.replace('.js', ''),
-        path: path.join(examplesDir, file)
-      });
-    }
-  });
+  /* Helper modules (e.g. diagram-drag-debug.js) export a function
+     and are not standalone examples — skip them. */
+  var helperPattern = /-debug\.js$/;
 
-  if (fs.existsSync(inlineDataDir)) {
-    fs.readdirSync(inlineDataDir).forEach(function (file) {
-      if (file.endsWith('.js')) {
+  /* Recursively scan all subdirectories of the examples folder.
+     Each subfolder (charts/, diagrams/, etc.) contains categorised
+     example scripts.  The display name preserves the relative path
+     so test output shows which category each example belongs to. */
+  fs.readdirSync(examplesDir, { withFileTypes: true }).forEach(function (entry) {
+    if (!entry.isDirectory()) return;
+
+    var subDir = path.join(examplesDir, entry.name);
+    fs.readdirSync(subDir).forEach(function (file) {
+      if (file.endsWith('.js') && !helperPattern.test(file)) {
         examples.push({
-          name: 'inline-data/' + file.replace('.js', ''),
-          path: path.join(inlineDataDir, file)
+          name: entry.name + '/' + file.replace('.js', ''),
+          path: path.join(subDir, file)
         });
       }
     });
-  }
+  });
 
   return examples;
 }

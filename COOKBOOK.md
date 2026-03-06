@@ -19,6 +19,7 @@ Detailed widget documentation and examples for Galactica.
 - [Table](#table)
 - [Tree](#tree)
 - [Markdown](#markdown)
+- [Diagram](#diagram)
 
 ## Layouts
 
@@ -57,7 +58,7 @@ Detailed widget documentation and examples for Galactica.
    screen.append(line) //must append before setting data
    line.setData([series1, series2])
 `````
-**Examples:** [simple line chart](./examples/line-fraction.js), [multiple lines](./examples/multi-line-chart.js), [256 colors](./examples/line-random-colors.js), [custom yPadding](./examples/line-ypadding.js)
+**Examples:** [simple line chart](./examples/charts/line-fraction.js), [multiple lines](./examples/charts/multi-line-chart.js), [256 colors](./examples/charts/line-random-colors.js), [custom yPadding](./examples/charts/line-ypadding.js)
 
 ---
 
@@ -94,7 +95,7 @@ Detailed widget documentation and examples for Galactica.
 
 Unlike line charts which use categorical X labels, scatter plots use numeric X values and support multiple marker styles.
 
-**Examples:** [scatter plot](./examples/scatter.js), [multi-series](./examples/scatter-multi.js)
+**Examples:** [scatter plot](./examples/scatter/scatter.js), [multi-series](./examples/scatter/scatter-multi.js)
 
 ---
 
@@ -231,7 +232,7 @@ You can also hardcode a specific numeric into the donut's core display instead o
   });
 `````
 
-See an example of this in one of the donuts settings on `./examples/donut.js`.
+See an example of this in one of the donuts settings on `./examples/charts/donut.js`.
 
 ---
 
@@ -259,7 +260,7 @@ See an example of this in one of the donuts settings on `./examples/donut.js`.
 
 `````
 
-Please see the **examples/lcd.js** for an example. The example provides keybindings to adjust the `segmentWidth` and `segmentInterval` and `strokeWidth` in real-time so that you can see how they manipulate the look and feel.
+Please see the **examples/gauges/lcd.js** for an example. The example provides keybindings to adjust the `segmentWidth` and `segmentInterval` and `strokeWidth` in real-time so that you can see how they manipulate the look and feel.
 
 ---
 
@@ -341,7 +342,7 @@ note: only png images are supported
       , [4, 5, 6] ]})
 `````
 
-**Examples:** [basic table](./examples/table.js), [percentage column widths](./examples/table-percentage-width.js)
+**Examples:** [basic table](./examples/tables/table.js), [percentage column widths](./examples/tables/table-percentage-width.js)
 
 ---
 
@@ -411,7 +412,7 @@ Every node is a hash and it can have custom properties that can be used in "sele
   * If you use a function, the result will be stored in `node.childrenContent` and `children`
   * *Example* :
     * Hash : <code>{'Fruit':{ name: 'Fruit', children:{ 'Banana': {}, 'Cherry': {}}}}</code>
-    * Function : see `examples/explorer.js`
+    * Function : see `examples/tables/explorer.js`
 * childrenContent
   * *Type* : `hash`
   * *Desc* : Children content for internal usage *DO NOT MODIFY*
@@ -439,9 +440,209 @@ Every node is a hash and it can have custom properties that can be used in "sele
 
 ---
 
+## Diagram
+
+ASCII diagram editor — define boxes, connectors, and labels using plain-text or programmatic APIs. Supports interactive mouse-driven editing (click, double-click, drag), orthogonal A* connector routing, Sugiyama-style auto-layout, checked (✔) and current-work (╭╍╍╯) box states, and smooth dot-pair animation.
+
+`````
+┌──────────┐       ┌──────────┐       ┌──────────┐
+│  Auth    │       │  API     │       │ ✔ Web    │
+│  Service │──────▶│  Gateway │──────▶│  Client  │
+└──────────┘       └──────────┘       └──────────┘
+                        │
+                        ▼
+                   ╭╍╍╍╍╍╍╍╍╍╍╮
+                   ┇ Database ┇
+                   ╰╍╍╍╍╍╍╍╍╍╍╯
+`````
+
+### Quick Start
+
+Create a diagram widget from an ASCII source string:
+
+`````javascript
+const galactica = require('galactica')
+const screen = galactica.screen()
+
+const diag = galactica.diagram({
+  parent: screen,
+  label: ' Diagram ',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+  border: { type: 'line' },
+  interactive: true,
+  animate: true,
+  source: [
+    '┌──────────┐       ┌──────────┐',
+    '│  Build   │──────▶│  Deploy  │',
+    '└──────────┘       └──────────┘'
+  ].join('\n')
+})
+
+diag.on('box:click', function (ev) {
+  console.log('Clicked box', ev.boxId)
+})
+
+screen.key(['q', 'escape'], function () { process.exit(0) })
+screen.render()
+`````
+
+### `setData` Format
+
+The standard CliUI data setter accepts two shapes:
+
+`````javascript
+// Shape 1 — raw ASCII string
+diag.setData('┌───┐\n│ A │\n└───┘')
+
+// Shape 2 — object with source property
+diag.setData({ source: '┌───┐\n│ A │\n└───┘' })
+`````
+
+Both are forwarded to `setSource()` internally.
+
+### Programmatic Model Building
+
+Instead of parsing ASCII text you can build the model directly:
+
+`````javascript
+const galactica = require('galactica')
+const DiagramModel = galactica.DiagramModel
+
+const model = new DiagramModel(80, 24)
+
+const boxA = model.addBox(1, 1, 12, 3, 'Commit')
+const boxB = model.addBox(20, 1, 12, 3, 'Build')
+
+// Create ports on the right side of boxA and left side of boxB
+const portOut = model.addPort(boxA.id, 'right', 0)
+const portIn  = model.addPort(boxB.id, 'left', 0)
+
+// Connect them
+model.addConnector(portOut.id, portIn.id, 'right')
+
+// Apply to a widget
+diag.setModel(model)
+diag.route()
+`````
+
+### Headless Parse / Render (No Widget)
+
+Parse and render diagrams without creating a blessed screen:
+
+`````javascript
+const galactica = require('galactica')
+
+// Parse ASCII → model
+const model = galactica.parseDiagram('┌───┐\n│ A │──▶┌───┐\n└───┘   │ B │\n        └───┘')
+
+console.log(model.boxes.size)      // 2
+console.log(model.connectors.size) // 1
+
+// Render model → ASCII
+const text = galactica.renderDiagram(model)
+console.log(text)
+`````
+
+### Options
+
+All standard blessed `Box` options (e.g. `top`, `left`, `width`, `height`, `border`, `style`, `label`) are supported, plus:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `source` | `string` | — | Initial ASCII diagram text. Parsed on construction. |
+| `interactive` | `boolean` | `true` | Enable mouse click, double-click, and drag interactions. |
+| `animate` | `boolean` | `true` | Enable ● dot-pair animation on current-work boxes. |
+| `data` | `string \| { source }` | — | Alternative data input (CliUI convention). Forwarded to `setSource()`. |
+
+### Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `box:click` | `{ boxId, hit }` | Single click on a box interior or border. |
+| `box:dblclick` | `{ boxId, hit }` | Double-click on a box. Toggles ✔ checked state by default. |
+| `connector:click` | `{ connectorId, hit }` | Click on a connector segment, junction, or arrowhead. |
+| `label:click` | `{ labelId, hit }` | Click on a label. |
+| `gate:click` | `{ boxId, portId, hit }` | Click on a gate (╢) or port position. |
+| `drag:start` | `{ boxId, x, y }` | Drag begins on a box. |
+| `drag:move` | `{ boxId, dx, dy }` | Box position updated by `(dx, dy)` delta. |
+| `drag:end` | `{ boxId }` | Drag released. |
+| `model:change` | *(none)* | Emitted after any model mutation (toggle, drag, layout, etc.). |
+
+### Public Methods
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `setSource` | `(text: string): void` | Parse ASCII text, rebuild model, route connectors, render. |
+| `getSource` | `(): string` | Render current model back to canonical ASCII text. |
+| `setModel` | `(model: DiagramModel): void` | Replace the live model, re-route and re-render. |
+| `getModel` | `(): DiagramModel \| null` | Return the live mutable model. |
+| `parse` | `(text: string): DiagramModel` | Parse text without applying (for preview / validation). |
+| `load` | `(text: string): void` | Alias for `setSource()`. |
+| `serialize` | `(): string` | Alias for `getSource()`. |
+| `setData` | `(data): void` | Standard CliUI data setter — accepts string or `{ source }`. |
+| `toggleChecked` | `(boxId: number): void` | Toggle ✔ checked state on a box. |
+| `startCurrentWork` | `(boxId: number): void` | Mark a box as current-work (dashed border + ● animation). |
+| `stopCurrentWork` | `(boxId: number): void` | Remove current-work state from a box. |
+| `layout` | `(options?): void` | Auto-arrange all boxes using the Sugiyama-style layout engine. |
+| `route` | `(): void` | Recompute all connector paths via A* pathfinding. |
+
+### Layout Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `gapX` | `number` | `6` | Horizontal gap between layers. |
+| `gapY` | `number` | `2` | Vertical gap between nodes within a layer. |
+| `startX` | `number` | `1` | Left margin. |
+| `startY` | `number` | `1` | Top margin. |
+| `margin` | `number` | `2` | Padding around the entire diagram. |
+
+### Box States
+
+Boxes can be in one of three visual states:
+
+| State | Border Style | Description |
+|-------|-------------|-------------|
+| Standard | `┌─┐│└─┘` | Normal solid-border box. |
+| Checked | `┌─┐│└─┘` + `✔` prefix | Text is prefixed with ✔ to indicate completion. |
+| Current Work | `╭╍╍╮┇╰╍╍╯` | Dashed/rounded border with animated ● dots travelling clockwise. |
+
+Toggle checked state with `toggleChecked(boxId)` or by double-clicking. Activate current-work with `startCurrentWork(boxId)` and deactivate with `stopCurrentWork(boxId)`.
+
+### Serialization & Persistence
+
+The model supports JSON round-tripping for save/restore workflows:
+
+`````javascript
+// Save
+const json = JSON.stringify(diag.getModel().toJSON())
+
+// Restore
+const restored = galactica.DiagramModel.fromJSON(JSON.parse(json))
+diag.setModel(restored)
+diag.route()
+`````
+
+For ASCII round-tripping use `serialize()` → `load()`.
+
+### Top-Level Exports
+
+| Export | Description |
+|--------|-------------|
+| `galactica.diagram(options)` | Create a Diagram widget (blessed Box subclass). |
+| `galactica.DiagramModel` | The `DiagramModel` class for programmatic model building. |
+| `galactica.parseDiagram(text, options?)` | Parse ASCII text into a `DiagramModel` (headless, no widget). |
+| `galactica.renderDiagram(model, options?)` | Render a `DiagramModel` back to ASCII text (headless). |
+
+**Examples:** [interactive demo](./examples/diagrams/diagram.js), [CI/CD pipeline](./examples/diagrams/diagram-pipeline.js), [sprint checklist](./examples/diagrams/diagram-checklist.js), [infra topology](./examples/diagrams/diagram-topology.js)
+
+---
+
 ## Colors
 
-You can use 256 colors ([source](./examples/line-random-colors.js)):
+You can use 256 colors ([source](./examples/charts/line-random-colors.js)):
 
 `````javascript
   function randomColor() {
@@ -735,7 +936,7 @@ Short lines align toward the step border (flush against the box edge):
   └────────────────────┘ text                             text                    └─────┘
 `````
 
-**Examples:** [cutout-quick.js](./examples/cutout-quick.js), [cutout-tabbar.js](./examples/cutout-tabbar.js)
+**Examples:** [cutout-quick.js](./examples/layout/cutout-quick.js), [cutout-tabbar.js](./examples/layout/cutout-tabbar.js)
 
 ---
 
