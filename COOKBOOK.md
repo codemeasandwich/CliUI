@@ -21,6 +21,10 @@ Detailed widget documentation and examples for Galactica.
 - [Markdown](#markdown)
 - [Diagram](#diagram)
 
+## Integration
+
+- [Programmatic Integration Patterns](#programmatic-integration-patterns)
+
 ## Layouts
 
 - [Grid](#grid)
@@ -59,6 +63,38 @@ Detailed widget documentation and examples for Galactica.
    line.setData([series1, series2])
 `````
 **Examples:** [simple line chart](./examples/charts/line-fraction.js), [multiple lines](./examples/charts/multi-line-chart.js), [256 colors](./examples/charts/line-random-colors.js), [custom yPadding](./examples/charts/line-ypadding.js)
+
+### Updating Data
+
+Call `setData()` again with new series arrays. The chart redraws completely each time, so you can change titles, add/remove series, or shift the X window.
+
+`````javascript
+// Replace all series data at once
+line.setData([
+  { title: 'req/s', x: ['t1', 't2', 't3'], y: [10, 20, 15] }
+])
+`````
+
+### Real-Time Streaming
+
+Shift old data points off the front and push new ones to create a scrolling time-series display. Always call `screen.render()` after `setData()`.
+
+`````javascript
+var labels = ['t1', 't2', 't3', 't4']
+var values = [5, 1, 7, 5]
+var tick = 5
+
+setInterval(function () {
+  labels.shift()
+  labels.push('t' + tick)
+  values.shift()
+  values.push(Math.floor(Math.random() * 10))
+  tick++
+
+  line.setData([{ title: 'req/s', x: labels, y: values }])
+  screen.render()
+}, 1000)
+`````
 
 ---
 
@@ -116,6 +152,24 @@ Unlike line charts which use categorical X labels, scatter plots use numeric X v
        , data: [5, 10]})
 `````
 
+### Updating Data
+
+Call `setData()` with a new `{ titles, data }` object. Titles and values can change between calls — bars are redrawn from scratch each time.
+
+`````javascript
+setInterval(function () {
+  bar.setData({
+    titles: ['web', 'api', 'db'],
+    data: [
+      Math.floor(Math.random() * 100),
+      Math.floor(Math.random() * 100),
+      Math.floor(Math.random() * 100)
+    ]
+  })
+  screen.render()
+}, 2000)
+`````
+
 ---
 
 ## Stacked Bar Chart
@@ -155,6 +209,22 @@ Unlike line charts which use categorical X labels, scatter plots use numeric X v
    map.addMarker({"lon" : "-79.0000", "lat" : "37.5000", color: "red", char: "X" })
 `````
 
+### Dynamic Markers
+
+Add markers at runtime with `addMarker()`. Remove all markers with `clearMarkers()` before redrawing a new set.
+
+`````javascript
+// Add markers one at a time
+map.addMarker({ lon: '-122.4194', lat: '37.7749', color: 'green', char: 'S' })
+
+// Replace all markers (e.g. on data refresh)
+map.clearMarkers()
+servers.forEach(function (s) {
+  map.addMarker({ lon: s.lon, lat: s.lat, color: s.healthy ? 'green' : 'red', char: 'X' })
+})
+screen.render()
+`````
+
 ---
 
 ## Gauge
@@ -164,6 +234,24 @@ Unlike line charts which use categorical X labels, scatter plots use numeric X v
 `````javascript
    var gauge = galactica.gauge({label: 'Progress', stroke: 'green', fill: 'white'})
    gauge.setPercent(25)
+`````
+
+### Updating Data
+
+Use `setPercent(n)` for simple 0–100 updates, `setData(n)` as an alias, or `setStack([...])` for stacked segments.
+
+`````javascript
+// Simple percentage update
+gauge.setPercent(75)
+
+// Real-time progress indicator
+var progress = 0
+var timer = setInterval(function () {
+  progress += 5
+  gauge.setPercent(Math.min(progress, 100))
+  screen.render()
+  if (progress >= 100) clearInterval(timer)
+}, 500)
 `````
 
 ---
@@ -234,6 +322,20 @@ You can also hardcode a specific numeric into the donut's core display instead o
 
 See an example of this in one of the donuts settings on `./examples/charts/donut.js`.
 
+### Real-Time Updates
+
+Call `setData()` with a new array of data objects. The donut redraws automatically — just call `screen.render()` afterwards.
+
+`````javascript
+setInterval(function () {
+  donut.setData([
+    { percent: Math.floor(Math.random() * 100), label: 'cpu', color: 'green' },
+    { percent: Math.floor(Math.random() * 100), label: 'mem', color: 'cyan' }
+  ])
+  screen.render()
+}, 1500)
+`````
+
 ---
 
 ## LCD Display
@@ -262,6 +364,26 @@ See an example of this in one of the donuts settings on `./examples/charts/donut
 
 Please see the **examples/gauges/lcd.js** for an example. The example provides keybindings to adjust the `segmentWidth` and `segmentInterval` and `strokeWidth` in real-time so that you can see how they manipulate the look and feel.
 
+### Runtime Adjustment
+
+Update the display value with `setDisplay()` and tweak visual options with `setOptions()` at any time.
+
+`````javascript
+// Update the displayed value
+lcd.setDisplay('42C')
+
+// Adjust visual parameters at runtime
+lcd.setOptions({ segmentWidth: 0.08, strokeWidth: 0.15, color: 'cyan' })
+screen.render()
+
+// Real-time counter display
+var count = 0
+setInterval(function () {
+  lcd.setDisplay(++count + '')
+  screen.render()
+}, 1000)
+`````
+
 ---
 
 ## Rolling Log
@@ -274,6 +396,28 @@ Please see the **examples/gauges/lcd.js** for an example. The example provides k
       , selectedFg: "green"
       , label: 'Server Log'})
    log.log("new log line")
+`````
+
+### Streaming
+
+Each `log.log(string)` call appends a new line and auto-scrolls to the bottom. The `tags` option enables blessed markup for colored output. Set `bufferLength` to limit how many lines are kept in memory.
+
+`````javascript
+var log = galactica.log({
+  label: 'Events',
+  tags: true,
+  bufferLength: 100   // keep last 100 lines
+})
+
+// Append lines with blessed tag markup
+log.log('{green-fg}[INFO]{/green-fg} Server started on :3000')
+log.log('{red-fg}[ERROR]{/red-fg} Connection refused')
+
+// Real-time log tail
+setInterval(function () {
+  log.log('[' + new Date().toISOString() + '] heartbeat')
+  screen.render()
+}, 2000)
 `````
 
 ---
@@ -312,6 +456,28 @@ note: only png images are supported
    , [40, 10, 40, 50]])
 `````
 
+### Streaming Pattern
+
+Shift old values off the front and push new ones, then call `setData()` with updated titles and datasets.
+
+`````javascript
+var data1 = [10, 20, 30, 20]
+var data2 = [40, 10, 40, 50]
+
+setInterval(function () {
+  data1.shift()
+  data1.push(Math.floor(Math.random() * 50))
+  data2.shift()
+  data2.push(Math.floor(Math.random() * 50))
+
+  spark.setData(
+    ['Network In', 'Network Out'],
+    [data1, data2]
+  )
+  screen.render()
+}, 1000)
+`````
+
 ---
 
 ## Table
@@ -343,6 +509,33 @@ note: only png images are supported
 `````
 
 **Examples:** [basic table](./examples/tables/table.js), [percentage column widths](./examples/tables/table-percentage-width.js)
+
+### Events
+
+Listen for row selection with the `select` event. The callback receives the selected row data and its index.
+
+`````javascript
+table.on('select', function (item, index) {
+  log.log('Selected row ' + index + ': ' + item.content)
+  screen.render()
+})
+`````
+
+### Updating Data
+
+Call `setData()` with new headers and rows at any time. The table redraws completely.
+
+`````javascript
+setInterval(function () {
+  table.setData({
+    headers: ['PID', 'CPU', 'MEM'],
+    data: processes.map(function (p) {
+      return [p.pid, p.cpu + '%', p.mem + 'MB']
+    })
+  })
+  screen.render()
+}, 5000)
+`````
 
 ---
 
@@ -570,6 +763,7 @@ All standard blessed `Box` options (e.g. `top`, `left`, `width`, `height`, `bord
 | `drag:move` | `{ boxId, dx, dy }` | Box position updated by `(dx, dy)` delta. |
 | `drag:end` | `{ boxId }` | Drag released. |
 | `model:change` | *(none)* | Emitted after any model mutation (toggle, drag, layout, etc.). |
+| `pan` | `{ panX, panY }` | Viewport position changed via drag or API call. |
 
 ### Public Methods
 
@@ -586,8 +780,11 @@ All standard blessed `Box` options (e.g. `top`, `left`, `width`, `height`, `bord
 | `toggleChecked` | `(boxId: number): void` | Toggle ✔ checked state on a box. |
 | `startCurrentWork` | `(boxId: number): void` | Mark a box as current-work (dashed border + ● animation). |
 | `stopCurrentWork` | `(boxId: number): void` | Remove current-work state from a box. |
-| `layout` | `(options?): void` | Auto-arrange all boxes using the Sugiyama-style layout engine. |
+| `layout` | `(options?): void` | Auto-arrange all boxes using the Sugiyama-style layout engine. Resets pan to origin. |
 | `route` | `(): void` | Recompute all connector paths via A* pathfinding. |
+| `pan` | `(dx: number, dy: number): void` | Pan the viewport by a delta. Positive values shift right/down. |
+| `panTo` | `(x: number, y: number): void` | Pan the viewport to an absolute model coordinate. |
+| `resetPan` | `(): void` | Reset the viewport pan to the origin `(0, 0)`. |
 
 ### Layout Options
 
@@ -636,7 +833,299 @@ For ASCII round-tripping use `serialize()` → `load()`.
 | `galactica.parseDiagram(text, options?)` | Parse ASCII text into a `DiagramModel` (headless, no widget). |
 | `galactica.renderDiagram(model, options?)` | Render a `DiagramModel` back to ASCII text (headless). |
 
-**Examples:** [interactive demo](./examples/diagrams/diagram.js), [CI/CD pipeline](./examples/diagrams/diagram-pipeline.js), [sprint checklist](./examples/diagrams/diagram-checklist.js), [infra topology](./examples/diagrams/diagram-topology.js)
+### Transition Current Work
+
+Animate a travel-dot (●) along the connector path from one current-work box to another. The dot moves cell-by-cell at ~100ms per cell. Perimeter animation is paused during travel and resumes on the destination box when the dot arrives.
+
+`````javascript
+// Mark box A as current-work first
+diag.startCurrentWork(boxA.id)
+
+// Later, transition to box B with a travel-dot animation
+diag.transitionCurrentWork(boxA.id, boxB.id, function () {
+  console.log('Transition complete — box B is now current-work')
+})
+`````
+
+If no connector path exists between the two boxes, the transition falls back to an instant switch with no animation.
+
+### DiagramModel API Reference
+
+The `DiagramModel` class provides the full mutation and query API for programmatic diagram building.
+
+#### Constructor
+
+`````javascript
+var model = new galactica.DiagramModel(width, height)
+// width:  canvas width in character cells (default: 80)
+// height: canvas height in character cells (default: 24)
+`````
+
+#### Box Mutations
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `addBox` | `(x, y, width, height, text?, opts?)` | Add a box. `opts`: `{ checked, currentWork }`. Returns `DiagramBox`. |
+| `removeBox` | `(boxId)` | Remove a box and cascade-delete its ports, connectors, and orphaned labels. |
+| `moveBox` | `(boxId, dx, dy)` | Shift a box by `(dx, dy)` grid cells. Returns the box or `null`. |
+| `resizeBox` | `(boxId, width, height)` | Set new dimensions. Returns the box or `null`. |
+| `setBoxText` | `(boxId, text)` | Replace a box's content text. |
+| `toggleChecked` | `(boxId)` | Flip the ✔ checked state. Returns the new `boolean` state. |
+| `setCurrentWork` | `(boxId, flag)` | Set or clear the current-work (dashed border) state. |
+| `moveLabelsForBox` | `(boxId, dx, dy)` | Shift all labels anchored to this box's ports by `(dx, dy)`. |
+| `repositionLabelsForBox` | `(boxId)` | Recompute label positions after port re-anchoring. |
+
+#### Port Management
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `addPort` | `(boxId, side, offset)` | Add a port. `side`: `'top'`, `'right'`, `'bottom'`, `'left'`. `offset`: 0-based interior position. Returns `Port`. |
+| `removePort` | `(portId)` | Remove a port and detach all its connectors. |
+| `findOrCreatePort` | `(boxId, side, offset)` | Return an existing port at `(box, side, offset)` or create a new one. |
+
+#### Connector Management
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `addConnector` | `(sourcePortId, destPortId, arrowDir?)` | Connect two ports. `arrowDir`: `'right'`, `'left'`, `'up'`, `'down'`, or `null`. Returns `DiagramConnector`. |
+| `removeConnector` | `(connectorId)` | Remove a connector and clean up port references and anchored labels. |
+| `setConnectorSegments` | `(connectorId, segments)` | Set the routed path segments (array of `{ x1, y1, x2, y2 }`). |
+| `setLineLabel` | `(connectorId, text)` | Set or clear a text label on a connector's longest segment. |
+| `addEndpointLabel` | `(connectorId, text, end?)` | Add a label near a branch exit. `end`: `'source'` or `'dest'` (default). |
+
+#### Label Management
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `addLabel` | `(type, text, x, y, anchorId?)` | Add a standalone label. `type`: `'line'`, `'endpoint'`, or `'entry'`. |
+| `removeLabel` | `(labelId)` | Remove a label by ID. |
+
+#### Queries
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `getBox` | `(id)` | Get a box by ID. |
+| `getPort` | `(id)` | Get a port by ID. |
+| `getConnector` | `(id)` | Get a connector by ID. |
+| `getLabel` | `(id)` | Get a label by ID. |
+| `getConnectorsForBox` | `(boxId)` | Return all connectors attached to a box (via its ports). |
+| `getPortPosition` | `(portId)` | Compute the absolute `{ x, y }` grid coordinate of a port on its box border. |
+
+#### Re-anchoring
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `reanchorPorts` | `(boxId?)` | Re-anchor ports so each exits from the side facing the connected box. Spreads opposite-direction ports apart. If `boxId` is given, limits to that box's connectors. |
+
+#### Serialization
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `clone` | `()` | Deep-clone the entire model. |
+| `toJSON` | `()` | Serialize to a JSON-safe plain object. |
+| `DiagramModel.fromJSON` | `(json)` | *(static)* Restore a model from a `toJSON()` object. |
+
+### Entity Data Structures
+
+The model stores four entity types as plain objects (no prototypes). All IDs are auto-incremented integers.
+
+#### DiagramBox
+
+`````javascript
+{
+  id:          1,           // unique box ID
+  x:           5,           // left column (0-based grid)
+  y:           2,           // top row (0-based grid)
+  width:       12,          // total columns including borders
+  height:      3,           // total rows including borders
+  text:        'Deploy',    // raw content text (may include ✔ prefix)
+  checked:     false,       // true when ✔ marker is shown
+  currentWork: false,       // true when dashed animated border is active
+  ports:       [/* Port objects */]
+}
+`````
+
+#### Port
+
+`````javascript
+{
+  id:           2,          // unique port ID
+  boxId:        1,          // owning box ID
+  side:         'right',    // 'top' | 'right' | 'bottom' | 'left'
+  offset:       0,          // 0-based interior position along the side
+  connectorIds: [3]         // IDs of attached connectors
+}
+`````
+
+#### DiagramConnector
+
+`````javascript
+{
+  id:             3,        // unique connector ID
+  sourcePortId:   2,        // departure port ID
+  destPortId:     4,        // arrival port ID
+  segments:       [         // routed path (set by router)
+    { x1: 16, y1: 3, x2: 22, y2: 3 },
+    { x1: 22, y1: 3, x2: 22, y2: 7 }
+  ],
+  arrowDir:       'right',  // target-entry arrow direction or null
+  sourceArrowDir: null,     // source-exit arrow direction or null
+  lineLabel:      null,     // text label on the connector or null
+  endpointLabels: []        // labels near branch exits
+}
+`````
+
+#### DiagramLabel
+
+`````javascript
+{
+  id:       5,              // unique label ID
+  type:     'endpoint',     // 'line' | 'endpoint' | 'entry'
+  text:     'Y',            // display text
+  x:        18,             // column position
+  y:        2,              // row position
+  anchorId: 3               // related connector or port ID, or null
+}
+`````
+
+### Constants
+
+| Constant | Values | Description |
+|----------|--------|-------------|
+| `SIDE` | `'top'`, `'right'`, `'bottom'`, `'left'` | The four sides of a box for port placement. |
+| `BOX_STATE` | `'standard'`, `'checked'`, `'currentWork'` | Visual states a box can be in. |
+| `LABEL_TYPE` | `'line'`, `'endpoint'`, `'entry'` | Label placement categories. |
+
+**Examples:** [interactive demo](./examples/diagrams/diagram.js), [CI/CD pipeline](./examples/diagrams/diagram-pipeline.js), [sprint checklist](./examples/diagrams/diagram-checklist.js), [infra topology](./examples/diagrams/diagram-topology.js), [drag demo](./examples/diagrams/diagram-drag.js), [workflow](./examples/diagrams/diagram-workflow.js)
+
+---
+
+## Programmatic Integration Patterns
+
+Cross-widget patterns for event-driven dashboards, real-time updates, and model-driven diagram manipulation.
+
+### Event-Driven Dashboard
+
+Wire diagram events to chart and gauge updates to build interactive dashboards where clicking a box updates other widgets.
+
+`````javascript
+var galactica = require('galactica')
+var screen = galactica.screen()
+
+var diag = galactica.diagram({
+  parent: screen,
+  width: '60%',
+  height: '70%',
+  interactive: true,
+  source: sprintSource
+})
+
+var gauge = galactica.gauge({
+  parent: screen,
+  label: 'Completion',
+  left: '60%',
+  width: '40%',
+  height: '30%'
+})
+
+// When a box is double-clicked (toggles ✔), update the gauge
+diag.on('box:dblclick', function (ev) {
+  var model = diag.getModel()
+  var total = 0, checked = 0
+  model.boxes.forEach(function (box) {
+    total++
+    if (box.checked) checked++
+  })
+  gauge.setPercent(Math.round((checked / total) * 100))
+  screen.render()
+})
+
+// React to any model change (drag, layout, toggle)
+diag.on('model:change', function () {
+  screen.render()
+})
+`````
+
+### Real-Time Update Loop
+
+The canonical pattern for updating multiple widgets on a timer. Batch all `setData()` calls before a single `screen.render()`.
+
+`````javascript
+setInterval(function () {
+  // Update chart data
+  line.setData([{ title: 'req/s', x: labels, y: values }])
+
+  // Update gauge
+  gauge.setPercent(cpuUsage)
+
+  // Append to log
+  log.log('[' + new Date().toLocaleTimeString() + '] tick')
+
+  // Single render call for all updates
+  screen.render()
+}, 1000)
+`````
+
+### Model-Driven Diagram Updates
+
+Build and modify diagrams programmatically at runtime — add boxes, create connections, and re-layout.
+
+`````javascript
+var DiagramModel = galactica.DiagramModel
+
+// Start with an existing model
+var model = diag.getModel()
+
+// Add a new box and connect it to an existing one
+var newBox = model.addBox(0, 0, 14, 3, 'New Step')
+var portOut = model.addPort(existingBox.id, 'right', 0)
+var portIn  = model.addPort(newBox.id, 'left', 0)
+model.addConnector(portOut.id, portIn.id, 'right')
+
+// Apply model, auto-layout, and route connectors
+diag.setModel(model)
+diag.layout({ gapX: 6, gapY: 2 })
+diag.route()
+screen.render()
+`````
+
+### Connecting Widgets to External Data
+
+Poll an external source and distribute the results across multiple widgets.
+
+`````javascript
+var http = require('http')
+
+function fetchAndUpdate() {
+  http.get('http://localhost:9090/api/stats', function (res) {
+    var body = ''
+    res.on('data', function (chunk) { body += chunk })
+    res.on('end', function () {
+      var stats = JSON.parse(body)
+
+      bar.setData({ titles: stats.names, data: stats.values })
+      gauge.setPercent(stats.cpu)
+      table.setData({
+        headers: ['Host', 'Status'],
+        data: stats.hosts.map(function (h) { return [h.name, h.status] })
+      })
+
+      screen.render()
+    })
+  })
+}
+
+setInterval(fetchAndUpdate, 5000)
+fetchAndUpdate()  // initial load
+`````
+
+### Lifecycle Notes
+
+- **Append before data**: Always `screen.append(widget)` (or use `parent: screen`) before calling `setData()`. Widgets need screen dimensions to render correctly.
+- **Batch renders**: Call `screen.render()` once after all widget updates, not after each individual `setData()`.
+- **Resize handling**: Widgets auto-redraw on container resize using cached data from the last `setData()` call. No manual re-render needed for terminal resize.
+- **Deferred init**: Use `widget.on('attach', fn)` if you need to defer `setData()` until the widget is mounted on a screen.
+- **Model mutability**: `diag.getModel()` returns the live mutable model. Changes take effect when you call `diag.setModel(model)` or `diag.layout()` / `diag.route()`.
 
 ---
 
