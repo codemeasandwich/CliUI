@@ -49,6 +49,7 @@ declare namespace Galactica {
             | GaugeListOptions
             | DonutOptions
             | ScatterOptions
+            | DiagramOptions
 
 
         export type WidgetElements = BoxElement
@@ -68,6 +69,7 @@ declare namespace Galactica {
             | GaugeElement
             | GaugeListElement
             | DonutElement
+            | DiagramElement
 
 
         export class GridElement extends BoxElement implements IHasOptions<GridOptions> {
@@ -709,6 +711,136 @@ declare namespace Galactica {
         screen: Blessed.Widgets.Screen,
         opts: ChromeOptions
     ): ChromeInstance;
+
+    // ── Diagram — Diegetic ASCII diagram editor ────────────────────
+
+    /** Side enum for port placement on a box. */
+    export type DiagramSide = 'top' | 'bottom' | 'left' | 'right';
+
+    /** Box state enum. */
+    export type DiagramBoxState = 'standard' | 'checked' | 'currentWork';
+
+    /** Label type enum. */
+    export type DiagramLabelType = 'line' | 'endpoint' | 'entry';
+
+    /** A segment of an orthogonal connector path. */
+    export interface DiagramSegment {
+        x1: number;
+        y1: number;
+        x2: number;
+        y2: number;
+    }
+
+    /** A box in the diagram model. */
+    export interface DiagramBox {
+        id: number;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        text: string;
+        checked: boolean;
+        currentWork: boolean;
+    }
+
+    /** A port on a box border. */
+    export interface DiagramPort {
+        id: number;
+        boxId: number;
+        side: DiagramSide;
+        offset: number;
+        connectorIds: number[];
+    }
+
+    /** A connector between two ports. */
+    export interface DiagramConnector {
+        id: number;
+        sourcePortId: number;
+        destPortId: number;
+        segments: DiagramSegment[];
+        arrowDir: string | null;
+    }
+
+    /** A text label in the diagram. */
+    export interface DiagramLabel {
+        id: number;
+        text: string;
+        x: number;
+        y: number;
+        type: DiagramLabelType;
+        anchorId: number | null;
+    }
+
+    /** The DiagramModel class — structural truth of a diagram. */
+    export class DiagramModel {
+        width: number;
+        height: number;
+        boxes: Map<number, DiagramBox>;
+        ports: Map<number, DiagramPort>;
+        connectors: Map<number, DiagramConnector>;
+        labels: Map<number, DiagramLabel>;
+        opaqueBlocks: string[];
+
+        addBox(x: number, y: number, width: number, height: number, text?: string, checked?: boolean, currentWork?: boolean): DiagramBox;
+        removeBox(id: number): void;
+        moveBox(id: number, x: number, y: number): void;
+        resizeBox(id: number, w: number, h: number): void;
+        toggleChecked(id: number): void;
+        setCurrentWork(id: number, on: boolean): void;
+        getBox(id: number): DiagramBox | undefined;
+        addPort(boxId: number, side: DiagramSide, offset: number): DiagramPort;
+        getPort(id: number): DiagramPort | undefined;
+        getPortPosition(portId: number): { x: number; y: number } | null;
+        findOrCreatePort(boxId: number, side: DiagramSide, offset: number): DiagramPort;
+        addConnector(sourcePortId: number, destPortId: number, arrowDir?: string | null): DiagramConnector;
+        removeConnector(id: number): void;
+        getConnector(id: number): DiagramConnector | undefined;
+        getConnectorsForBox(boxId: number): DiagramConnector[];
+        setConnectorSegments(id: number, segs: DiagramSegment[]): void;
+        addLabel(type: DiagramLabelType, text: string, x: number, y: number, anchorId?: number | null): DiagramLabel;
+        clone(): DiagramModel;
+        toJSON(): object;
+        static fromJSON(json: object): DiagramModel;
+    }
+
+    /** Options for the Diagram widget. */
+    export interface DiagramOptions extends Blessed.Widgets.BoxOptions {
+        /** Initial ASCII diagram text. */
+        source?: string;
+        /** Enable mouse interaction (default true). */
+        interactive?: boolean;
+        /** Enable current-work animation (default true). */
+        animate?: boolean;
+        /** Alternative data input. */
+        data?: string | { source: string };
+    }
+
+    /** Diagram widget element. */
+    export interface DiagramElement extends Blessed.Widgets.BoxElement {
+        setSource(text: string): void;
+        getSource(): string;
+        setModel(model: DiagramModel): void;
+        getModel(): DiagramModel | null;
+        parse(text: string): DiagramModel;
+        load(text: string): void;
+        serialize(): string;
+        setData(data: string | { source: string }): void;
+        toggleChecked(boxId: number): void;
+        startCurrentWork(boxId: number): void;
+        stopCurrentWork(boxId: number): void;
+        transitionCurrentWork(fromBoxId: number, toBoxId: number, callback?: () => void): void;
+        layout(options?: { gapX?: number; gapY?: number; startX?: number; startY?: number }): void;
+        route(): void;
+    }
+
+    /** Diagram widget constructor. */
+    export function diagram(options?: DiagramOptions): DiagramElement;
+
+    /** Parse ASCII text into a DiagramModel. */
+    export function parseDiagram(text: string, options?: { mode?: 'strict' | 'lenient' }): DiagramModel;
+
+    /** Render a DiagramModel to canonical ASCII text. */
+    export function renderDiagram(model: DiagramModel, options?: { frame?: number; width?: number; height?: number }): string;
 
 }
 

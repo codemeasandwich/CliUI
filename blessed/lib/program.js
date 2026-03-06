@@ -3435,6 +3435,20 @@ Program.prototype.enableMouse = function() {
       allMotion: true
     }, true);
   }
+
+  // Windows Terminal, VS Code integrated terminal, and modern conhost
+  // all support VT mouse sequences but blessed doesn't recognise their
+  // TERM value ('windows-ansi' or missing).  Use SGR mode which gives
+  // unlimited coordinates and is the most widely supported protocol on
+  // modern terminals.  This also acts as a generic fallback for any
+  // unrecognised TERM — safer than silently doing nothing, because a
+  // terminal that doesn't understand these sequences will simply ignore
+  // them.
+  return this.setMouse({
+    sgrMouse: true,
+    cellMotion: true,
+    allMotion: true
+  }, true);
 };
 
 Program.prototype.disableMouse = function() {

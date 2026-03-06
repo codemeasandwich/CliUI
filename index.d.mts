@@ -144,6 +144,26 @@ export declare const resolveTerminalIO: (options?: any) => any;
 // Border charsets
 export declare const charsets: any;
 
+// Diagram — Diegetic ASCII diagram editor
+export declare const diagram: typeof Galactica.diagram;
+export declare const DiagramModel: typeof Galactica.DiagramModel;
+export declare const parseDiagram: typeof Galactica.parseDiagram;
+export declare const renderDiagram: typeof Galactica.renderDiagram;
+
+// Re-export diagram types
+export type {
+  DiagramSide,
+  DiagramBoxState,
+  DiagramLabelType,
+  DiagramSegment,
+  DiagramBox,
+  DiagramPort,
+  DiagramConnector,
+  DiagramLabel,
+  DiagramOptions,
+  DiagramElement
+} from './index.js';
+
 // Default export
 declare const _default: typeof Galactica;
 export default _default;

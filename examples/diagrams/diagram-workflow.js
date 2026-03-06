@@ -94,31 +94,62 @@ var statusBar = galactica.box({
 
 // ── Helper: cycle current-work to next unchecked box ───────────────
 
+/**
+ * Flag to prevent overlapping transitions when 'c' is pressed
+ * rapidly while a travel-dot animation is still in flight.
+ */
+var transitioning = false;
+
 function cycleCurrentWork() {
+  /* Guard against overlapping transitions from rapid key presses. */
+  if (transitioning) return;
+
   var model = diag.getModel();
   if (!model) return;
   var boxes = Array.from(model.boxes.values());
 
-  /* Find the current CW box, then the first unchecked box after it. */
+  /* Find the current CW box index. */
   var cwIdx = boxes.findIndex(function (b) { return b.currentWork; });
-  if (cwIdx !== -1) {
-    model.setCurrentWork(boxes[cwIdx].id, false);
-  }
+  var fromBox = cwIdx !== -1 ? boxes[cwIdx] : null;
 
   /* Walk forward from cwIdx+1, wrapping around, looking for unchecked. */
+  var toBox = null;
   for (var i = 1; i <= boxes.length; i++) {
     var candidate = boxes[(cwIdx + i) % boxes.length];
     if (!candidate.checked) {
-      model.setCurrentWork(candidate.id, true);
-      statusBar.setContent(' Current work → #' + candidate.id +
-        ' (' + candidate.text.split('\n')[0].trim() + ')');
+      toBox = candidate;
       break;
     }
   }
 
-  diag._postModelChange();
-  diag.emit('model:change');
-  screen.render();
+  if (!toBox) return;
+
+  /*
+   * If there's a current CW box, use the travel-dot transition
+   * to animate the ● along the connector to the next box.
+   * Otherwise (first activation), just set CW directly.
+   */
+  if (fromBox) {
+    transitioning = true;
+    statusBar.setContent(' Transitioning → #' + toBox.id +
+      ' (' + toBox.text.split('\n')[0].trim() + ')…');
+    screen.render();
+
+    diag.transitionCurrentWork(fromBox.id, toBox.id, function () {
+      transitioning = false;
+      statusBar.setContent(' Current work → #' + toBox.id +
+        ' (' + toBox.text.split('\n')[0].trim() + ')');
+      screen.render();
+    });
+  } else {
+    /* No existing CW — instant activation (no travel needed). */
+    model.setCurrentWork(toBox.id, true);
+    diag._postModelChange();
+    diag.emit('model:change');
+    statusBar.setContent(' Current work → #' + toBox.id +
+      ' (' + toBox.text.split('\n')[0].trim() + ')');
+    screen.render();
+  }
 }
 
 // ── Event listeners ────────────────────────────────────────────────

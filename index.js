@@ -31,6 +31,13 @@ exports.stackedBar = require('./lib/widget/charts/stacked-bar')
 exports.line = require('./lib/widget/charts/line')
 exports.scatter = require('./lib/widget/charts/scatter')
 
+// Diagram — Diegetic ASCII diagram editor widget
+var diagramPkg = require('./lib/widget/diagram')
+exports.diagram = diagramPkg.Diagram
+exports.DiagramModel = diagramPkg.DiagramModel
+exports.parseDiagram = diagramPkg.parse
+exports.renderDiagram = diagramPkg.render
+
 exports.charsets = require('./lib/border/charsets');
 require('./lib/border/cutout'); // patches Element.prototype on import
 
