@@ -84,7 +84,7 @@ var statusBar = galactica.box({
   width: '100%',
   height: 1,
   tags: true,
-  content: ' {bold}drag{/bold}: move | {bold}dblclick{/bold}: ✔ | {bold}l{/bold}: layout | {bold}r{/bold}: reroute | {bold}d{/bold}: dump | {bold}q{/bold}: quit',
+  content: ' {bold}drag box{/bold}: move | {bold}drag empty{/bold}: pan | {bold}dblclick{/bold}: ✔ | {bold}l{/bold}: layout | {bold}r{/bold}: reroute | {bold}p{/bold}: reset pan | {bold}q{/bold}: quit',
   style: { fg: 'white', bg: 'blue' }
 });
 
@@ -110,6 +110,14 @@ screen.key(['r'], function () {
   diag.route();
   debug.log('{green-fg}route(){/green-fg} applied');
   statusBar.setContent(' {green-fg}Rerouted{/green-fg}');
+  debug.refreshState();
+  screen.render();
+});
+
+screen.key(['p'], function () {
+  diag.resetPan();
+  debug.log('{green-fg}resetPan(){/green-fg} applied');
+  statusBar.setContent(' {green-fg}Pan reset to origin{/green-fg}');
   debug.refreshState();
   screen.render();
 });

@@ -77,7 +77,9 @@ module.exports = function setupDebug(screen, diag, statusBar) {
       '{bold}ports:{/bold}      ' + ports,
       '{bold}grid:{/bold}       ' + (hasGrid ? '{green-fg}YES{/green-fg}' : '{red-fg}NO{/red-fg}'),
       '',
-      '{bold}dragId:{/bold}     ' + dragId
+      '{bold}dragId:{/bold}     ' + dragId,
+      '{bold}pan:{/bold}        (' + (diag._panX || 0) + ', ' + (diag._panY || 0) + ')',
+      '{bold}panning:{/bold}   ' + (diag._isPanning ? '{yellow-fg}YES{/yellow-fg}' : 'no')
     ];
     statePanel.setContent(lines.join('\n'));
   }
@@ -134,6 +136,14 @@ module.exports = function setupDebug(screen, diag, statusBar) {
     var name = box ? box.text.trim() : '#' + ev.boxId;
     log('{green-fg}drag:end{/green-fg} ' + name);
     statusBar.setContent(' {green-fg}Dropped{/green-fg} ' + name + '  \u2014 connectors rerouted');
+    refreshState();
+    screen.render();
+  });
+
+  /* ── Pan events ──────────────────────────────────────────────── */
+
+  diag.on('pan', function (ev) {
+    statusBar.setContent(' {blue-fg}Pan{/blue-fg} (' + ev.panX + ', ' + ev.panY + ')');
     refreshState();
     screen.render();
   });
