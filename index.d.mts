@@ -127,6 +127,7 @@ export declare const fitToWidth: (str: string, width: number) => string;
 export declare const joinFields: (fields: [string, number][], separator?: string) => string;
 export declare const scaleWidths: (baseWidths: number[], newSlotSpace: number) => number[];
 export declare const renderSlotRow: (items: any[], slotWidths: number[], formatter: (item: any, slotWidth: number, index: number) => string, separator?: string) => string;
+export declare const buildFieldRow: (fields: [string, number][], contentWidth: number, opts?: { separator?: string; fixedWidths?: boolean }) => string;
 
 // Page layout computation — proportional page layout engine
 export declare const computePageLayout: typeof Galactica.computePageLayout;
