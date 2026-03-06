@@ -253,3 +253,69 @@ test('STATUS enum has expected values', function () {
   assert.strictEqual(STATUS.ERROR, 'error');
   assert.strictEqual(STATUS.PENDING, 'pending');
 });
+
+// ────────────────────────────────────────────────────────────────────
+// § Branch coverage — optional connection properties
+// ────────────────────────────────────────────────────────────────────
+
+test('buildModelFromData passes all optional connection properties', function () {
+  /* Exercises every if(c.property) branch in data-builder.js L159-172. */
+  const result = buildModelFromData({
+    nodes: [{ id: 'a', text: 'A' }, { id: 'b', text: 'B' }],
+    connections: [{
+      from: 'a', to: 'b',
+      label: 'test-label',
+      style: 'animated',
+      marker: '\u25CB',
+      head: '>',
+      speed: 200,
+      weight: 2,
+      bidirectional: true,
+      density: 0.7,
+      backEdge: true
+    }]
+  });
+  const conn = result.model.connectors.values().next().value;
+  assert.strictEqual(conn.lineLabel, 'test-label', 'label should be set');
+  assert.strictEqual(conn.style, 'animated', 'style should be set');
+  assert.strictEqual(conn.marker, '\u25CB', 'marker should be set');
+  assert.strictEqual(conn.head, '>', 'head should be set');
+  assert.strictEqual(conn.speed, 200, 'speed should be set');
+  assert.strictEqual(conn.weight, 2, 'weight should be set');
+  assert.strictEqual(conn.bidirectional, true, 'bidirectional should be true');
+  assert.strictEqual(conn.density, 0.7, 'density should be set');
+  assert.strictEqual(conn.backEdge, true, 'backEdge should be true');
+});
+
+test('buildModelFromData with no optional properties leaves defaults', function () {
+  /* Exercises the falsy branches for all optional properties. */
+  const result = buildModelFromData({
+    nodes: [{ id: 'a', text: 'A' }, { id: 'b', text: 'B' }],
+    connections: [{ from: 'a', to: 'b' }]
+  });
+  const conn = result.model.connectors.values().next().value;
+  assert.strictEqual(conn.lineLabel, null, 'label should remain null');
+  assert.strictEqual(conn.bidirectional, false, 'bidirectional should remain false');
+  assert.strictEqual(conn.backEdge, false, 'backEdge should remain false');
+});
+
+test('buildModelFromData with speed=0 passes through', function () {
+  /* Exercises the c.speed != null branch when speed is 0. */
+  const result = buildModelFromData({
+    nodes: [{ id: 'a', text: 'A' }, { id: 'b', text: 'B' }],
+    connections: [{ from: 'a', to: 'b', speed: 0, weight: 0 }]
+  });
+  const conn = result.model.connectors.values().next().value;
+  assert.strictEqual(conn.speed, 0, 'speed 0 should be preserved');
+  assert.strictEqual(conn.weight, 0, 'weight 0 should be preserved');
+});
+
+test('buildModelFromData with explicit arrow direction', function () {
+  /* Exercises c.arrow truthy branch. */
+  const result = buildModelFromData({
+    nodes: [{ id: 'a', text: 'A' }, { id: 'b', text: 'B' }],
+    connections: [{ from: 'a', to: 'b', arrow: 'down' }]
+  });
+  const conn = result.model.connectors.values().next().value;
+  assert.strictEqual(conn.arrowDir, 'down', 'arrow direction should be overridden');
+});
