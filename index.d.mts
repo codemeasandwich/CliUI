@@ -151,6 +151,20 @@ export declare const DiagramModel: typeof Galactica.DiagramModel;
 export declare const parseDiagram: typeof Galactica.parseDiagram;
 export declare const renderDiagram: typeof Galactica.renderDiagram;
 
+// Diagram data builders — structured data to DiagramModel
+export declare const buildModelFromData: typeof Galactica.buildModelFromData;
+export declare const buildCycleFromData: typeof Galactica.buildCycleFromData;
+export declare const buildDecisionFromData: typeof Galactica.buildDecisionFromData;
+
+// Sequence diagram widget
+export declare const sequence: typeof Galactica.sequence;
+export declare const SequenceModel: typeof Galactica.SequenceModel;
+export declare const renderSequence: typeof Galactica.renderSequence;
+export declare const buildSequenceFromData: typeof Galactica.buildSequenceFromData;
+
+// Computed grid — page-layout-based widget positioning
+export declare const createComputedGrid: typeof Galactica.createComputedGrid;
+
 // Re-export diagram types
 export type {
   DiagramSide,
@@ -162,7 +176,32 @@ export type {
   DiagramConnector,
   DiagramLabel,
   DiagramOptions,
-  DiagramElement
+  DiagramElement,
+  DiagramDataNode,
+  DiagramDataConnection,
+  DiagramDataDescriptor,
+  DiagramBuildResult,
+  CycleGroup,
+  CycleState,
+  CycleTransition,
+  CycleDataDescriptor,
+  CycleBuildResult,
+} from './index.js';
+
+// Re-export sequence types
+export type {
+  SequenceMessageStyle,
+  SequenceArrowType,
+  SequenceNotePosition,
+  SequenceParticipant,
+  SequenceMessage,
+  SequenceSection,
+  SequenceNote,
+  SequenceEvent,
+  SequenceDataDescriptor,
+  SequenceOptions,
+  SequenceElement,
+  ComputedGrid,
 } from './index.js';
 
 // Default export

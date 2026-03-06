@@ -50,6 +50,7 @@ declare namespace Galactica {
             | DonutOptions
             | ScatterOptions
             | DiagramOptions
+            | SequenceOptions
 
 
         export type WidgetElements = BoxElement
@@ -70,6 +71,7 @@ declare namespace Galactica {
             | GaugeListElement
             | DonutElement
             | DiagramElement
+            | SequenceElement
 
 
         export class GridElement extends BoxElement implements IHasOptions<GridOptions> {
@@ -91,6 +93,8 @@ declare namespace Galactica {
             set<T extends (options?: ScatterOptions) => S, S extends ScatterElement>(row: number, col: number, rowSpan: number, colSpan: number, obj: T, opt: ScatterOptions): ScatterElement
             set<T extends (options?: StackedBarOptions) => S, S extends StackedBarElement>(row: number, col: number, rowSpan: number, colSpan: number, obj: T, opt: StackedBarOptions): StackedBarElement
             set<T extends (options?: CanvasOptions) => S, S extends CanvasElement>(row: number, col: number, rowSpan: number, colSpan: number, obj: T, opt: CanvasOptions): CanvasElement
+            set<T extends (options?: DiagramOptions) => S, S extends DiagramElement>(row: number, col: number, rowSpan: number, colSpan: number, obj: T, opt: DiagramOptions): DiagramElement
+            set<T extends (options?: SequenceOptions) => S, S extends SequenceElement>(row: number, col: number, rowSpan: number, colSpan: number, obj: T, opt: SequenceOptions): SequenceElement
 
 
             // set<T extends (options?: WidgetOptions) => S, S extends WidgetElements>(row: number, col: number, rowSpan: number, colSpan: number, obj: T, opt: WidgetOptions): WidgetElements
@@ -569,6 +573,10 @@ declare namespace Galactica {
 
         export class Sparkline extends Widgets.SparklineElement {}
 
+        export const Diagram: (options?: DiagramOptions) => DiagramElement;
+
+        export const Sequence: (options?: SequenceOptions) => SequenceElement;
+
     }
 
 
@@ -841,6 +849,267 @@ declare namespace Galactica {
 
     /** Render a DiagramModel to canonical ASCII text. */
     export function renderDiagram(model: DiagramModel, options?: { frame?: number; width?: number; height?: number }): string;
+
+    // ── Diagram data builders ─────────────────────────────────────────
+    // Structured-data helpers that build DiagramModel instances from
+    // declarative node/connection descriptors instead of ASCII text.
+
+    /** Node descriptor for buildModelFromData / buildDecisionFromData. */
+    export interface DiagramDataNode {
+        id: string;
+        text?: string;
+        width?: number;
+        height?: number;
+        borderStyle?: string;
+        status?: string;
+        checked?: boolean;
+        currentWork?: boolean;
+        kind?: 'process' | 'decision' | 'terminal' | 'state' | string;
+    }
+
+    /** Connection descriptor for buildModelFromData / buildDecisionFromData. */
+    export interface DiagramDataConnection {
+        from: string;
+        to: string;
+        arrow?: string;
+        label?: string;
+        style?: string;
+        marker?: string;
+        head?: string;
+        speed?: number;
+        weight?: number;
+        bidirectional?: boolean;
+        density?: number;
+        backEdge?: boolean;
+    }
+
+    /** Input descriptor for buildModelFromData. */
+    export interface DiagramDataDescriptor {
+        nodes: DiagramDataNode[];
+        connections?: DiagramDataConnection[];
+    }
+
+    /** Return type shared by diagram data builder functions. */
+    export interface DiagramBuildResult {
+        model: DiagramModel;
+        idMap: Map<string, number>;
+        reverseMap: Map<number, string>;
+    }
+
+    /** Build a DiagramModel from a structured node/connection descriptor. */
+    export function buildModelFromData(data: DiagramDataDescriptor, defaultBorder?: string): DiagramBuildResult;
+
+    /** Build a DiagramModel laid out as a decision/flowchart from a descriptor. */
+    export function buildDecisionFromData(data: DiagramDataDescriptor, defaultBorder?: string): DiagramBuildResult;
+
+    /** Cycle group descriptor for buildCycleFromData. */
+    export interface CycleGroup {
+        id: string;
+        label: string;
+        states: string[];
+    }
+
+    /** State descriptor for buildCycleFromData. */
+    export interface CycleState {
+        id: string;
+        text?: string;
+        borderStyle?: string;
+        status?: string;
+    }
+
+    /** Transition descriptor for buildCycleFromData. */
+    export interface CycleTransition {
+        from: string;
+        to: string;
+        label?: string;
+        backEdge?: boolean;
+        style?: string;
+        speed?: number;
+    }
+
+    /** Input descriptor for buildCycleFromData. */
+    export interface CycleDataDescriptor {
+        groups: CycleGroup[];
+        states: CycleState[];
+        transitions?: CycleTransition[];
+    }
+
+    /** Return type for buildCycleFromData (extends DiagramBuildResult). */
+    export interface CycleBuildResult extends DiagramBuildResult {
+        groupMap: Map<string, number>;
+        skipLayout: boolean;
+    }
+
+    /** Build a DiagramModel laid out as a cycle diagram with groups. */
+    export function buildCycleFromData(data: CycleDataDescriptor, defaultBorder?: string): CycleBuildResult;
+
+    // ── Sequence diagram ──────────────────────────────────────────────
+    // Sequence (UML-style) diagram widget for rendering participant
+    // lifelines, messages, sections, and notes.
+
+    /** Message style enum values. */
+    export type SequenceMessageStyle = 'solid' | 'dashed' | string;
+
+    /** Arrow type enum values. */
+    export type SequenceArrowType = 'filled' | 'open' | string;
+
+    /** Note position enum values. */
+    export type SequenceNotePosition = 'over' | 'left' | 'right' | 'between' | string;
+
+    /** A participant in a sequence diagram. */
+    export interface SequenceParticipant {
+        id: string;
+        label: string;
+        borderStyle?: string;
+        x?: number;
+        width?: number;
+    }
+
+    /** A message (arrow) in a sequence diagram. */
+    export interface SequenceMessage {
+        type: 'message';
+        from: string;
+        to: string;
+        label: string;
+        style?: SequenceMessageStyle;
+        arrow?: SequenceArrowType;
+        animate?: boolean;
+        density?: number;
+        y?: number;
+    }
+
+    /** A section separator in a sequence diagram. */
+    export interface SequenceSection {
+        type: 'section';
+        label: string;
+        y?: number;
+    }
+
+    /** A note in a sequence diagram. */
+    export interface SequenceNote {
+        type: 'note';
+        text: string;
+        position: SequenceNotePosition;
+        participantId?: string;
+        participantId2?: string;
+        y?: number;
+    }
+
+    /** Union of sequence event types. */
+    export type SequenceEvent = SequenceMessage | SequenceSection | SequenceNote;
+
+    /** The SequenceModel class — structural truth of a sequence diagram. */
+    export class SequenceModel {
+        participants: SequenceParticipant[];
+        events: SequenceEvent[];
+        showBottomBoxes: boolean;
+        width: number;
+        height: number;
+
+        addParticipant(id: string, label: string, borderStyle?: string): SequenceParticipant;
+        addMessage(from: string, to: string, label: string, opts?: {
+            style?: SequenceMessageStyle;
+            arrow?: SequenceArrowType;
+            animate?: boolean;
+            density?: number;
+        }): SequenceMessage;
+        addSection(label: string): SequenceSection;
+        addNote(text: string, position: SequenceNotePosition, participantId?: string, participantId2?: string): SequenceNote;
+        getParticipant(id: string): SequenceParticipant | null;
+    }
+
+    /** Input descriptor for buildSequenceFromData. */
+    export interface SequenceDataDescriptor {
+        participants: Array<{ id: string; label: string; borderStyle?: string }>;
+        messages?: Array<{
+            from: string;
+            to: string;
+            label: string;
+            style?: string;
+            arrow?: string;
+            animate?: boolean;
+            density?: number;
+        }>;
+        sections?: Array<{ after: number; label: string }>;
+        notes?: Array<{
+            text: string;
+            position?: SequenceNotePosition;
+            over?: string;
+            between?: [string, string];
+        }>;
+        showBottomBoxes?: boolean;
+    }
+
+    /** Options for the Sequence widget. */
+    export interface SequenceOptions extends Blessed.Widgets.BoxOptions {
+        /** Declarative data descriptor for the sequence diagram. */
+        data?: SequenceDataDescriptor;
+        /** Repeat participant boxes at the bottom of the diagram. */
+        showBottomBoxes?: boolean;
+        /** Enable message animations (default true). */
+        animate?: boolean;
+    }
+
+    /** Sequence widget element. */
+    export interface SequenceElement extends Blessed.Widgets.BoxElement {
+        setData(data: SequenceDataDescriptor): void;
+        getData(): SequenceDataDescriptor | null;
+        addParticipant(id: string, label: string, opts?: { borderStyle?: string }): void;
+        addMessage(from: string, to: string, label: string, opts?: {
+            style?: string;
+            arrow?: string;
+            animate?: boolean;
+            density?: number;
+        }): void;
+        addSection(label: string): void;
+        addNote(text: string, position: SequenceNotePosition, participantId?: string, participantId2?: string): void;
+    }
+
+    /** Sequence widget constructor. */
+    export function sequence(options?: SequenceOptions): SequenceElement;
+
+    /** Build a SequenceModel from a structured data descriptor. */
+    export function buildSequenceFromData(data: SequenceDataDescriptor): SequenceModel;
+
+    /** Render a SequenceModel to ASCII text. */
+    export function renderSequence(model: SequenceModel, options?: {
+        panX?: number;
+        panY?: number;
+        viewWidth?: number;
+        viewHeight?: number;
+        frame?: number;
+    }): string;
+
+    // ── Computed grid ─────────────────────────────────────────────────
+    // Grid that uses computePageLayout for widget positioning instead of
+    // percentage-based blessed grid rows/cols.
+
+    /** Return type from createComputedGrid. */
+    export interface ComputedGrid {
+        set<T>(row: number, col: number, rowSpan: number, colSpan: number, factory: (options?: any) => T, opts?: any): T;
+    }
+
+    /** Create a computed grid that positions widgets via page layout engine. */
+    export function createComputedGrid(parent: Blessed.Widgets.Screen | Blessed.Widgets.BoxElement, pageName?: string): ComputedGrid;
+
+    // ── Slot-layout utilities ─────────────────────────────────────────
+    // Fixed-width padding, field joining, and proportional width scaling
+    // for terminal row formatting.
+
+    /** Pad or truncate a string to exactly the given terminal display width. */
+    export function fitToWidth(str: string, width: number): string;
+
+    /** Join [text, width] field pairs into a single padded row string. */
+    export function joinFields(fields: [string, number][], separator?: string): string;
+
+    /** Scale an array of base widths proportionally to fill a new total width. */
+    export function scaleWidths(baseWidths: number[], newSlotSpace: number): number[];
+
+    /** Render an array of items into a fixed-width slot row via a formatter callback. */
+    export function renderSlotRow(items: any[], slotWidths: number[], formatter: (item: any, slotWidth: number, index: number) => string, separator?: string): string;
+
+    /** Build a padded field row, optionally scaling widths to fit contentWidth. */
+    export function buildFieldRow(fields: [string, number][], contentWidth: number, opts?: { separator?: string; fixedWidths?: boolean }): string;
 
 }
 
