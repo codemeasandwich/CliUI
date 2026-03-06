@@ -37,6 +37,16 @@ exports.diagram = diagramPkg.Diagram
 exports.DiagramModel = diagramPkg.DiagramModel
 exports.parseDiagram = diagramPkg.parse
 exports.renderDiagram = diagramPkg.render
+exports.buildModelFromData = diagramPkg.buildModelFromData
+exports.buildCycleFromData = diagramPkg.buildCycleFromData
+exports.buildDecisionFromData = diagramPkg.buildDecisionFromData
+
+// Sequence diagram widget
+var seqPkg = require('./lib/widget/sequence')
+exports.sequence = seqPkg.Sequence
+exports.SequenceModel = seqPkg.SequenceModel
+exports.renderSequence = seqPkg.render
+exports.buildSequenceFromData = seqPkg.buildSequenceFromData
 
 exports.charsets = require('./lib/border/charsets');
 require('./lib/border/cutout'); // patches Element.prototype on import
