@@ -25,6 +25,7 @@ const { normalizeScreen } = require("./screen-normalize");
 const { evaluate } = require("./evaluator");
 const { saveAttempt } = require("./persistence");
 const { detectNoProgress } = require("./progress-detect");
+const { savePromptSnapshot } = require("./prompt-snapshot");
 
 /**
  * Run a single attempt: prompt → extract → execute → normalize → evaluate.
@@ -118,6 +119,11 @@ async function runAttemptLoop(api, task, episodeDir) {
             const prior = history[history.length - 1];
             prompt = buildRevisionPrompt(task, prior, attemptNum);
         }
+
+        // Persist the compiled prompt for debugging and replay.
+        // Saved before sending to the LLM so it's available even if
+        // the LLM call fails, crashes, or times out.
+        await savePromptSnapshot(episodeDir, attemptNum, prompt);
 
         // Run the attempt and persist artifacts immediately.
         let result;

@@ -72,9 +72,18 @@ const CONFIG = {
     noProgressCutoff: 3,
 
     // Filesystem paths relative to the project root.
+    // All learning subdirectories live under learning/ so they can
+    // be gitignored together while preserving internal structure.
     paths: {
-        temp: path.resolve("temp"),
-        episodes: path.resolve("learning", "episodes"),
+        temp:         path.resolve("temp"),
+        episodes:     path.resolve("learning", "episodes"),
+        skills:       path.resolve("learning", "skills"),
+        memories:     path.resolve("learning", "memories"),
+        exemplars:    path.resolve("learning", "exemplars"),
+        antiPatterns: path.resolve("learning", "anti-patterns"),
+        indexes:      path.resolve("learning", "indexes"),
+        prompts:      path.resolve("learning", "prompts"),
+        summaries:    path.resolve("learning", "summaries"),
     },
 
     // Root of the CliUI repository — used to build the Apprentice prompt

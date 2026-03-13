@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 /**
- * apprentice.js — Phase 3: Multi-Attempt Refinement Loop
+ * apprentice.js — Phase 4: Learning Store Scaffolding
  *
  * Entry point for the trainer. Runs one complete episode with
  * iterative refinement:
@@ -23,10 +23,11 @@ const CONFIG = require("./apprentice/config");
 const { episodeId } = require("./apprentice/filesystem");
 const { connectGateway } = require("./apprentice/gateway");
 const { runAttemptLoop } = require("./apprentice/attempt-loop");
+const { bootstrapLearningDirs } = require("./apprentice/learning-store");
 const { buildSummary, saveEpisodeSummary } = require("./apprentice/episode-summary");
 
 /**
- * Hardcoded task for Phase 3.
+ * Hardcoded task for Phase 4.
  *
  * Defines the work the Apprentice must accomplish. Shape matches
  * the task payload expected by the prompt builders:
@@ -55,6 +56,10 @@ const TASK = {
  * @returns {Promise<{episodeDir: string, summary: object}>}
  */
 async function runEpisode(task) {
+    // Ensure all eight learning/ subdirectories exist before any
+    // artifact writes occur. Idempotent — safe on repeat calls.
+    await bootstrapLearningDirs();
+
     const id = episodeId();
     const episodeDir = path.join(CONFIG.paths.episodes, id);
 
@@ -107,7 +112,7 @@ async function runEpisode(task) {
  */
 async function main() {
     try {
-        console.log("Apprentice Phase 3 — Multi-Attempt Refinement Loop");
+        console.log("Apprentice Phase 4 — Learning Store Scaffolding");
         console.log(`Gateway: ws://${CONFIG.gateway.host}:${CONFIG.gateway.port}`);
         console.log(`Apprentice provider: ${CONFIG.apprenticeProvider}`);
         console.log(`Evaluator provider: ${CONFIG.evaluatorProvider}`);
@@ -115,7 +120,7 @@ async function main() {
         console.log(`Terminal: ${CONFIG.terminal.cols}x${CONFIG.terminal.rows}`);
 
         const { episodeDir, summary } = await runEpisode(TASK);
-        console.log("✓ Phase 3 complete. Episode saved to:", episodeDir);
+        console.log("✓ Phase 4 complete. Episode saved to:", episodeDir);
         console.log(`  Result: ${summary.finalVerdict} after ${summary.totalAttempts} attempt(s)`);
     } catch (err) {
         console.error("\n✗ Episode failed:", err.message);
