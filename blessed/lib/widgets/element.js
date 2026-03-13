@@ -19,6 +19,11 @@ var helpers = require('../helpers');
 
 var Node = require('./node');
 
+// Resolve border charset (light, heavy, rounded, double, etc.)
+// so the render loop uses the correct characters instead of
+// hardcoded light unicode. Falls back to light if no charset set.
+var resolveCharset = require('../../../lib/border/charsets').resolveCharset;
+
 /**
  * Element
  */
@@ -2182,6 +2187,9 @@ Element.prototype.render = function() {
   // Draw the border.
   if (this.border) {
     battr = this.sattr(this.style.border);
+    // Resolve the charset for this border (heavy, rounded, double, etc.)
+    // Falls back to the light charset when no charset option is set.
+    var _cs = resolveCharset(this.border);
     y = yi;
     if (coords.notop) y = -1;
     for (x = xi; x < xl; x++) {
@@ -2192,33 +2200,33 @@ Element.prototype.render = function() {
       if (!cell) continue;
       if (this.border.type === 'line') {
         if (x === xi) {
-          ch = '\u250c'; // '┌'
+          ch = _cs.topLeft;
           if (!this.border.left) {
             if (this.border.top) {
-              ch = '\u2500'; // '─'
+              ch = _cs.horizontal;
             } else {
               continue;
             }
           } else {
             if (!this.border.top) {
-              ch = '\u2502'; // '│'
+              ch = _cs.vertical;
             }
           }
         } else if (x === xl - 1) {
-          ch = '\u2510'; // '┐'
+          ch = _cs.topRight;
           if (!this.border.right) {
             if (this.border.top) {
-              ch = '\u2500'; // '─'
+              ch = _cs.horizontal;
             } else {
               continue;
             }
           } else {
             if (!this.border.top) {
-              ch = '\u2502'; // '│'
+              ch = _cs.vertical;
             }
           }
         } else {
-          ch = '\u2500'; // '─'
+          ch = _cs.horizontal;
         }
       } else if (this.border.type === 'bg') {
         ch = this.border.ch;
@@ -2245,7 +2253,7 @@ Element.prototype.render = function() {
       if (cell) {
         if (this.border.left) {
           if (this.border.type === 'line') {
-            ch = '\u2502'; // '│'
+            ch = _cs.vertical;
           } else if (this.border.type === 'bg') {
             ch = this.border.ch;
           }
@@ -2268,7 +2276,7 @@ Element.prototype.render = function() {
       if (cell) {
         if (this.border.right) {
           if (this.border.type === 'line') {
-            ch = '\u2502'; // '│'
+            ch = _cs.vertical;
           } else if (this.border.type === 'bg') {
             ch = this.border.ch;
           }
@@ -2298,33 +2306,33 @@ Element.prototype.render = function() {
       if (!cell) continue;
       if (this.border.type === 'line') {
         if (x === xi) {
-          ch = '\u2514'; // '└'
+          ch = _cs.bottomLeft;
           if (!this.border.left) {
             if (this.border.bottom) {
-              ch = '\u2500'; // '─'
+              ch = _cs.horizontal;
             } else {
               continue;
             }
           } else {
             if (!this.border.bottom) {
-              ch = '\u2502'; // '│'
+              ch = _cs.vertical;
             }
           }
         } else if (x === xl - 1) {
-          ch = '\u2518'; // '┘'
+          ch = _cs.bottomRight;
           if (!this.border.right) {
             if (this.border.bottom) {
-              ch = '\u2500'; // '─'
+              ch = _cs.horizontal;
             } else {
               continue;
             }
           } else {
             if (!this.border.bottom) {
-              ch = '\u2502'; // '│'
+              ch = _cs.vertical;
             }
           }
         } else {
-          ch = '\u2500'; // '─'
+          ch = _cs.horizontal;
         }
       } else if (this.border.type === 'bg') {
         ch = this.border.ch;
