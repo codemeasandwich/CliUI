@@ -127,8 +127,19 @@ async function runEpisode(task, disableRetrieval = false) {
 }
 
 /**
- * Main entrypoint. Runs a single episode with the hardcoded task,
- * logs the result summary, and exits.
+ * Main CLI entrypoint. Parses arguments to determine the operating mode.
+ * 
+ * Domain: The primary control surface for the Apprentice system. By default, 
+ * it runs a single episode to solve a hardcoded task. But it also exposes 
+ * utility modes like benchmarks, replay, cache cleanup, and artifact export.
+ * Technical: Reads process.argv. Switches between `runEpisode`, `runBenchmarkSuite`,
+ * `exportLearning`, and `runCleanupAndPromotion` based on the provided flags.
+ * Intent & Trade-offs: The default mode uses a hardcoded task to keep the 
+ * developer experience simple for rapid iteration without needing a complex TUI.
+ * Assumptions/Failures: Catches all unhandled promises. Exits with process.exitCode = 1 
+ * and prints the stack trace if any mode catastrophically fails.
+ * 
+ * @returns {Promise<void>}
  */
 async function main() {
     try {
@@ -144,11 +155,20 @@ async function main() {
         
         let runMode = "default";
         let targetId = null;
+        let exportDir = null;
 
         if (args.includes("--benchmark-all")) {
             runMode = "benchmark-all";
         } else if (args.includes("--compare-benchmarks")) {
             runMode = "compare-benchmarks";
+        } else if (args.includes("--cleanup")) {
+            runMode = "cleanup";
+        } else if (args.includes("--export")) {
+            runMode = "export";
+            const expIdx = args.indexOf("--export");
+            if (expIdx !== -1 && expIdx + 1 < args.length && !args[expIdx + 1].startsWith("--")) {
+                exportDir = args[expIdx + 1];
+            }
         } else {
             const benchIdx = args.indexOf("--benchmark");
             if (benchIdx !== -1 && benchIdx + 1 < args.length) {
@@ -226,6 +246,15 @@ async function main() {
             console.log(`\n  Delta Pass Rate: ${diffPass >= 0 ? '+' : ''}${diffPass.toFixed(1)}%`);
             console.log(`  Delta Mean Score: ${diffScore >= 0 ? '+' : ''}${diffScore.toFixed(2)}`);
             console.log("============================================================\n");
+        } else if (runMode === "export") {
+            const { exportLearning } = require("./apprentice/export");
+            await exportLearning(exportDir);
+        } else if (runMode === "cleanup") {
+            const { runCleanupAndPromotion } = require("./apprentice/promotion");
+            const { generateSummaries, generatePromptPacks } = require("./apprentice/summary-generator");
+            await runCleanupAndPromotion();
+            await generateSummaries();
+            await generatePromptPacks();
         } else if (runMode === "benchmark") {
             const task = await loadBenchmarkTask(targetId);
             const api = require("api-ape");

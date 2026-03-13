@@ -76,35 +76,66 @@ async function readIndex(type) {
 }
 
 /**
- * Append an entry to an index file. Reads the current index,
- * pushes the new entry, and writes back atomically. Creates the
- * indexes directory and file if they don't exist.
+ * Append or update an entry in an index file.
  *
- * Entry shape: { id, title, tags, path, createdAt, confidence }
+ * Domain: Acts as the primary write path for the learning database.
+ * Technical: Reads the current JSON array, upserts the new entity matching 
+ * by `id`, and writes back atomically. Enforces export-friendly metadata shapes 
+ * during mutation so old components get "upgraded" to the rich schema format.
+ * Intent & Trade-offs: Performs a full read-modify-write cycle instead of stream 
+ * appends. For databases with thousands of items this would be slow, but for 
+ * hundreds of local markdown snippets, it's safe and simple.
+ * Assumptions/Edge Cases: If `entry` lacks fields like `confidence` or `createdAt`, 
+ * it populates safe defaults.
  *
- * @param {string} type  — artifact type
- * @param {object} entry — index entry to append
+ * @param {string} type  - Artifact type (memory, skill, exemplar, anti-pattern).
+ * @param {object} entry - Index entry to append or update.
  * @returns {Promise<void>}
  */
 async function addToIndex(type, entry) {
     await ensureDirectory(CONFIG.paths.indexes);
     const entries = await readIndex(type);
-    entries.push(entry);
+    
+    // Enforce rich metadata structure for exportability
+    const richEntry = {
+        id: entry.id,
+        type: entry.type || type,
+        title: entry.title || "Untitled",
+        tags: entry.tags || [],
+        confidence: entry.confidence != null ? entry.confidence : 0.5,
+        path: entry.path || "unknown",
+        createdAt: entry.createdAt || new Date().toISOString(),
+        supportingEvidence: entry.supportingEvidence || [],
+        relatedArtifacts: entry.relatedArtifacts || []
+    };
+    
+    // Remove old entry with same ID if replacing/merging
+    const existingIdx = entries.findIndex((e) => e.id === entry.id);
+    if (existingIdx >= 0) {
+        entries[existingIdx] = richEntry;
+    } else {
+        entries.push(richEntry);
+    }
+    
     const filePath = indexPath(type);
     await writeText(filePath, JSON.stringify(entries, null, 2));
 }
 
 /**
- * Rebuild an index by scanning the artifact directory and parsing
- * YAML front-matter from each markdown file. Useful for recovery
- * or after manual edits to artifact files.
+ * Rebuild an index by scanning the artifact directory and parsing YAML front-matter.
  *
- * Reads all .md files in the type's directory, extracts front-matter
- * fields (id, title, tags, confidence, createdAt), and writes a
- * fresh index file.
+ * Domain: Self-healing synchronization for the learning database. If a developer 
+ * deletes a markdown file or manually edits its YAML, this routine rebuilds the 
+ * truth state.
+ * Technical: Re-reads all `.md` files in the target folder, calls `parseFrontMatter`, 
+ * extracts `id, type, title, tags, confidence` etc., and reconstructs reality.
+ * Intent & Trade-offs: Rebuilding relies strictly on front-matter keys. If an 
+ * artifact is malformed without an `id` block, it will be skipped entirely to 
+ * prevent corrupting the JSON index.
+ * Assumptions/Invariants: Only scans files ending in `.md`.
  *
- * @param {string} type — artifact type
- * @returns {Promise<object[]>} the rebuilt index entries
+ * @param {string} type - Artifact type.
+ * @returns {Promise<object[]>} The rebuilt index entries.
  */
 async function rebuildIndex(type) {
     // Resolve the directory that holds artifacts of this type.
@@ -142,12 +173,15 @@ async function rebuildIndex(type) {
         const meta = parseFrontMatter(content);
         if (meta.id) {
             entries.push({
-                id:         meta.id,
-                title:      meta.title || filename,
-                tags:       meta.tags || [],
-                path:       filePath,
-                createdAt:  meta.createdAt || null,
-                confidence: meta.confidence != null ? meta.confidence : null,
+                id:                 meta.id,
+                type:               meta.type || type,
+                title:              meta.title || filename,
+                tags:               meta.tags || [],
+                path:               filePath,
+                createdAt:          meta.createdAt || null,
+                confidence:         meta.confidence != null ? meta.confidence : null,
+                supportingEvidence: meta.supportingEvidence || [],
+                relatedArtifacts:   meta.relatedArtifacts || []
             });
         }
     }

@@ -13,27 +13,44 @@ const { askEvaluator } = require("./gateway");
 /**
  * Evaluate a script's execution result through the Evaluator actor.
  *
- * Sends the original task and captured stdout/stderr/exitCode to the
- * Evaluator via the gateway. Expects JSON: { score, verdict, critique,
- * suggested_next_change }.
+ * Domain: Acts as the primary automated feedback loop for the learning 
+ * system. Judges the quality of an Apprentice's script execution against 
+ * the original goal, assigning a score and providing a critique.
+ * Technical: Sends original task and captured stdout/stderr/exitCode 
+ * to the Evaluator via the gateway. Parses the JSON response into `{ score, 
+ * verdict, critique, suggested_next_change }`.
+ * Intent & Trade-offs: Built resiliently. Language models occasionally fail 
+ * to adhere strictly to JSON schemes (e.g., wrapping in markdown). The parser 
+ * attempts extraction rather than failing outright, to save the expensive LLM token run.
+ * Assumptions/Failures: If the Evaluator entirely fails to respond or returns 
+ * unparseable content, we return a structured "error" result (`_parse_error: true`) 
+ * so the episode lifecycle can safely continue and the attempt is recorded.
  *
- * If the Evaluator returns invalid JSON (e.g. wraps it in markdown),
- * we attempt to extract JSON from the response. If that fails, we
- * return a structured error result so the episode is still persisted.
- *
- * @param {object} api       — connected api-ape client
- * @param {string} prompt    — pre-built evaluator prompt text
- * @returns {Promise<object>} parsed evaluator verdict
+ * @param {object} api    - Connected api-ape client for LLM communication.
+ * @param {string} prompt - Pre-built evaluator prompt text containing context.
+ * @returns {Promise<object>} Parsed evaluator verdict.
  */
 async function evaluate(api, prompt) {
-    const rawResponse = await askEvaluator(api, prompt);
+    let rawResponse;
+    try {
+        rawResponse = await askEvaluator(api, prompt);
+    } catch (err) {
+        console.warn(`[evaluator] API call failed: ${err.message}`);
+        return {
+            score: 0,
+            verdict: "error",
+            critique: `Evaluator API call failed: ${err.message}`,
+            suggested_next_change: "Ensure the gateway is reachable and the provider is functioning.",
+            _parse_error: true,
+            _api_error: true
+        };
+    }
 
     // Attempt direct JSON parse first (ideal case).
     try {
         return JSON.parse(rawResponse);
     } catch (_directParseError) {
-        // The evaluator may have wrapped JSON in markdown fences.
-        // Try to extract the JSON object by finding { ... }.
+        // ... (rest handles extraction)
         const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             try {
@@ -44,7 +61,6 @@ async function evaluate(api, prompt) {
         }
 
         // JSON extraction failed — return structured error result
-        // so the episode can still be saved with diagnostic info.
         console.warn(
             "[evaluator] Failed to parse evaluator response as JSON. " +
             "Saving raw response for manual inspection."

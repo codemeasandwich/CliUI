@@ -81,22 +81,25 @@ const CONFIG = {
         maxAntiPatterns: 3,
     },
 
-    // Filesystem paths relative to the project root.
-    // All learning subdirectories live under learning/ so they can
+    // Filesystem paths relative to the project root or overridden by APPRENTICE_DATA_DIR.
+    // All learning subdirectories live under the base path so they can
     // be gitignored together while preserving internal structure.
-    paths: {
-        temp:         path.resolve("temp"),
-        episodes:     path.resolve("learning", "episodes"),
-        skills:       path.resolve("learning", "skills"),
-        memories:     path.resolve("learning", "memories"),
-        exemplars:    path.resolve("learning", "exemplars"),
-        antiPatterns: path.resolve("learning", "anti-patterns"),
-        indexes:      path.resolve("learning", "indexes"),
-        prompts:      path.resolve("learning", "prompts"),
-        summaries:    path.resolve("learning", "summaries"),
-        benchmarks:   path.resolve("learning", "benchmarks"),
-        reports:      path.resolve("learning", "benchmarks", "reports"),
-    },
+    paths: (function() {
+        const base = process.env.APPRENTICE_DATA_DIR ? path.resolve(process.env.APPRENTICE_DATA_DIR) : path.resolve("learning");
+        return {
+            temp:         path.resolve("temp"),
+            episodes:     path.join(base, "episodes"),
+            skills:       path.join(base, "skills"),
+            memories:     path.join(base, "memories"),
+            exemplars:    path.join(base, "exemplars"),
+            antiPatterns: path.join(base, "anti-patterns"),
+            indexes:      path.join(base, "indexes"),
+            prompts:      path.join(base, "prompts"),
+            summaries:    path.join(base, "summaries"),
+            benchmarks:   path.join(base, "benchmarks"),
+            reports:      path.join(base, "benchmarks", "reports"),
+        };
+    })(),
 
     // Root of the CliUI repository — used to build the Apprentice prompt
     // so the model knows which files it may reference.
