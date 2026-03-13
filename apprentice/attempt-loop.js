@@ -109,12 +109,13 @@ async function runSingleAttempt(api, prompt, task, attemptNum) {
  * use a revision prompt containing real output and evaluator feedback
  * from the previous attempt. Stops on pass, stall, max, or error.
  *
- * @param {object} api        — connected api-ape client
- * @param {object} task       — task payload
- * @param {string} episodeDir — absolute path to the episode folder
+ * @param {object} api              — connected api-ape client
+ * @param {object} task             — task payload
+ * @param {string} episodeDir       — absolute path to the episode folder
+ * @param {boolean} [disableRetrieval=false] — if true, learning artifact retrieval is skipped
  * @returns {Promise<{ history: object[], stopReason: string, retrievedLearning: object|null }>}
  */
-async function runAttemptLoop(api, task, episodeDir) {
+async function runAttemptLoop(api, task, episodeDir, disableRetrieval = false) {
     await ensureDirectory(episodeDir);
     const history = [];
 
@@ -122,15 +123,19 @@ async function runAttemptLoop(api, task, episodeDir) {
     // The task doesn't change between attempts, so retrieval
     // results are reused across all attempts in the loop.
     let retrievedLearning = null;
-    try {
-        retrievedLearning = await retrieveForTask(task);
-        if (hasRetrievedContent(retrievedLearning)) {
-            const ids = retrievedIds(retrievedLearning);
-            console.log(`  [learning] Retrieved ${ids.length} prior artifact(s)`);
+    if (!disableRetrieval) {
+        try {
+            retrievedLearning = await retrieveForTask(task);
+            if (hasRetrievedContent(retrievedLearning)) {
+                const ids = retrievedIds(retrievedLearning);
+                console.log(`  [learning] Retrieved ${ids.length} prior artifact(s)`);
+            }
+        } catch (err) {
+            // Retrieval failure is non-fatal — proceed without prior learning.
+            console.warn(`  [learning] Retrieval failed (proceeding without): ${err.message}`);
         }
-    } catch (err) {
-        // Retrieval failure is non-fatal — proceed without prior learning.
-        console.warn(`  [learning] Retrieval failed (proceeding without): ${err.message}`);
+    } else {
+        console.log(`  [learning] Retrieval explicitly disabled for this run.`);
     }
 
     // Track which artifact IDs were retrieved so each attempt

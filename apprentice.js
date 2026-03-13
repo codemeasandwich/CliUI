@@ -26,6 +26,9 @@ const { runAttemptLoop } = require("./apprentice/attempt-loop");
 const { bootstrapLearningDirs } = require("./apprentice/learning-store");
 const { buildSummary, saveEpisodeSummary } = require("./apprentice/episode-summary");
 const { distillEpisode } = require("./apprentice/distill");
+const { loadBenchmarkTask, loadAllBenchmarkTasks } = require("./apprentice/benchmark-loader");
+const { runBenchmarkSuite } = require("./apprentice/benchmark-runner");
+const { loadEpisodeTask } = require("./apprentice/replay-runner");
 
 /**
  * Hardcoded task for Phase 4.
@@ -54,9 +57,10 @@ const TASK = {
  * episode summary is written after all attempts complete.
  *
  * @param {object} task — task payload { request, wireframe?, cols?, rows? }
+ * @param {boolean} [disableRetrieval=false] — whether learning retrieval is disabled
  * @returns {Promise<{episodeDir: string, summary: object}>}
  */
-async function runEpisode(task) {
+async function runEpisode(task, disableRetrieval = false) {
     // Ensure all eight learning/ subdirectories exist before any
     // artifact writes occur. Idempotent — safe on repeat calls.
     await bootstrapLearningDirs();
@@ -80,7 +84,7 @@ async function runEpisode(task) {
         // The loop handles: prompt building, script execution,
         // normalization, evaluation, revision, and per-attempt saves.
         const { history, stopReason } = await runAttemptLoop(
-            api, task, episodeDir
+            api, task, episodeDir, disableRetrieval
         );
 
         // Step 3 — Build and save the episode summary.
@@ -128,16 +132,123 @@ async function runEpisode(task) {
  */
 async function main() {
     try {
-        console.log("Apprentice Phase 5 — Learning Distillation, Retrieval, and Reuse");
+        console.log("Apprentice Phase 7 — Benchmarks, Replay, and Regression Reporting");
         console.log(`Gateway: ws://${CONFIG.gateway.host}:${CONFIG.gateway.port}`);
         console.log(`Apprentice provider: ${CONFIG.apprenticeProvider}`);
         console.log(`Evaluator provider: ${CONFIG.evaluatorProvider}`);
         console.log(`Timeout: ${CONFIG.timeoutMs}ms`);
         console.log(`Terminal: ${CONFIG.terminal.cols}x${CONFIG.terminal.rows}`);
 
-        const { episodeDir, summary } = await runEpisode(TASK);
-        console.log("✓ Phase 5 complete. Episode saved to:", episodeDir);
-        console.log(`  Result: ${summary.finalVerdict} after ${summary.totalAttempts} attempt(s)`);
+        const args = process.argv.slice(2);
+        const disableRetrieval = args.includes("--no-retrieval");
+        
+        let runMode = "default";
+        let targetId = null;
+
+        if (args.includes("--benchmark-all")) {
+            runMode = "benchmark-all";
+        } else if (args.includes("--compare-benchmarks")) {
+            runMode = "compare-benchmarks";
+        } else {
+            const benchIdx = args.indexOf("--benchmark");
+            if (benchIdx !== -1 && benchIdx + 1 < args.length) {
+                runMode = "benchmark";
+                targetId = args[benchIdx + 1];
+            } else {
+                const replayIdx = args.indexOf("--replay");
+                if (replayIdx !== -1 && replayIdx + 1 < args.length) {
+                    runMode = "replay";
+                    targetId = args[replayIdx + 1];
+                }
+            }
+        }
+
+        if (runMode === "benchmark-all") {
+            const tasks = await loadAllBenchmarkTasks();
+            if (tasks.length === 0) {
+                throw new Error(
+                    `Failed to run benchmark suite.\n` +
+                    `Constraint violated: No valid benchmark tasks were found.\n` +
+                    `Guidance: Ensure JSON task files exist in the learning/benchmarks/ directory.`
+                );
+            }
+            const api = require("api-ape");
+            await connectGateway(api);
+            try {
+                await runBenchmarkSuite(api, tasks, disableRetrieval);
+            } finally {
+                if (typeof api.close === "function") api.close();
+            }
+        } else if (runMode === "compare-benchmarks") {
+            const tasks = await loadAllBenchmarkTasks();
+            if (tasks.length === 0) {
+                throw new Error(
+                    `Failed to run benchmark suite.\n` +
+                    `Constraint violated: No valid benchmark tasks were found.\n` +
+                    `Guidance: Ensure JSON task files exist in the learning/benchmarks/ directory.`
+                );
+            }
+
+            console.log("\n============================================================");
+            console.log("  Pass 1: Retrieval DISABLED");
+            console.log("============================================================\n");
+            let api1 = require("api-ape");
+            await connectGateway(api1);
+            let reportWithout;
+            try {
+                reportWithout = await runBenchmarkSuite(api1, tasks, true);
+            } finally {
+                if (typeof api1.close === "function") api1.close();
+            }
+
+            console.log("\n============================================================");
+            console.log("  Pass 2: Retrieval ENABLED");
+            console.log("============================================================\n");
+            let api2 = require("api-ape");
+            await connectGateway(api2);
+            let reportWith;
+            try {
+                reportWith = await runBenchmarkSuite(api2, tasks, false);
+            } finally {
+                if (typeof api2.close === "function") api2.close();
+            }
+
+            console.log("\n============================================================");
+            console.log("                 BENCHMARK COMPARISON");
+            console.log("============================================================");
+            console.log(`  Tasks matched: ${reportWithout.totalTasks}`);
+            console.log(`  Retrieval DISABLED: Pass Rate ${(reportWithout.passRate * 100).toFixed(1)}%, Mean Score ${reportWithout.meanScore.toFixed(2)}`);
+            console.log(`  Retrieval ENABLED:  Pass Rate ${(reportWith.passRate * 100).toFixed(1)}%, Mean Score ${reportWith.meanScore.toFixed(2)}`);
+            
+            const diffPass = (reportWith.passRate - reportWithout.passRate) * 100;
+            const diffScore = reportWith.meanScore - reportWithout.meanScore;
+            
+            console.log(`\n  Delta Pass Rate: ${diffPass >= 0 ? '+' : ''}${diffPass.toFixed(1)}%`);
+            console.log(`  Delta Mean Score: ${diffScore >= 0 ? '+' : ''}${diffScore.toFixed(2)}`);
+            console.log("============================================================\n");
+        } else if (runMode === "benchmark") {
+            const task = await loadBenchmarkTask(targetId);
+            const api = require("api-ape");
+            await connectGateway(api);
+            try {
+                await runBenchmarkSuite(api, [task], disableRetrieval);
+            } finally {
+                if (typeof api.close === "function") api.close();
+            }
+        } else if (runMode === "replay") {
+            const task = loadEpisodeTask(targetId);
+            const api = require("api-ape");
+            await connectGateway(api);
+            try {
+                await runBenchmarkSuite(api, [task], disableRetrieval);
+            } finally {
+                if (typeof api.close === "function") api.close();
+            }
+        } else {
+            const { episodeDir, summary } = await runEpisode(TASK, disableRetrieval);
+            console.log("✓ Sequence complete. Episode saved to:", episodeDir);
+            console.log(`  Result: ${summary.finalVerdict} after ${summary.totalAttempts} attempt(s)`);
+        }
     } catch (err) {
         console.error("\n✗ Episode failed:", err.message);
         console.error(err.stack);

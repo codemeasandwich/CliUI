@@ -94,6 +94,8 @@ const CONFIG = {
         indexes:      path.resolve("learning", "indexes"),
         prompts:      path.resolve("learning", "prompts"),
         summaries:    path.resolve("learning", "summaries"),
+        benchmarks:   path.resolve("learning", "benchmarks"),
+        reports:      path.resolve("learning", "benchmarks", "reports"),
     },
 
     // Root of the CliUI repository — used to build the Apprentice prompt

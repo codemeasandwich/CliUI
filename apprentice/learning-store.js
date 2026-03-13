@@ -32,6 +32,8 @@ function learningDirPaths() {
         CONFIG.paths.indexes,
         CONFIG.paths.prompts,
         CONFIG.paths.summaries,
+        CONFIG.paths.benchmarks,
+        CONFIG.paths.reports,
     ];
 }
 
