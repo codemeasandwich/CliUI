@@ -9,17 +9,15 @@
  */
 
 /**
- * Calculate the hybrid score from the evaluator and deterministic results.
- * 
- * Score modifications:
- * - base score is evaluator score
- * - -2 for each failed deterministic check
- * - -4 for severe failures (e.g. timeout, non-zero exit code if not caught by checks)
- * - clamp to 0-10 range
- * 
- * @param {object} evaluatorResult - { score, verdict, critique, suggested_next_change }
- * @param {object} detResult - { passedChecks, failedChecks }
- * @returns {object} richer hybrid result object
+ * Purpose: Calculate the hybrid score from the evaluator and deterministic results.
+ * Inputs:
+ *   - evaluatorResult: {object} Base LLM scoring payload: { score, verdict, critique, suggested_next_change }
+ *   - detResult: {object} Deterministic check outcomes: { passedChecks, failedChecks }
+ * Outputs: {object} Richer true hybrid scoring payload with detailed numeric scoring and verdict.
+ * Scoring behavior: Base score is evaluator LLM score. Deducts -2 for each failed deterministic check, -4/-5 for severe failures, and clamps 0-10.
+ * Merge logic: Subjective LLM reasoning merges with programmatic execution assertions to block "hallucinated passes".
+ * Edge cases: Re-evaluates final verdicts (`pass`, `partial`, `fail`) dynamically if constraints force a score below validation thresholds.
+ * Failure behavior: In cases of severe failure (e.g. process crash timeout or completely empty UI), score is hard-capped at 3 and verdict is forced to fail, ignoring optimistic LLM grades.
  */
 function calculateHybridScore(evaluatorResult, detResult) {
     let score = evaluatorResult.score;
@@ -53,19 +51,22 @@ function calculateHybridScore(evaluatorResult, detResult) {
     // Replay verdict logic based on the final score. 
     let finalVerdict = evaluatorResult.verdict;
     
-    if (detResult.failedChecks.length > 0) {
-        if (finalScore >= 8 && evaluatorResult.verdict === 'pass') {
-            finalVerdict = "partial";
-        } else if (finalScore < 8 && finalScore >= 4) {
-            finalVerdict = "partial";
-        } else if (finalScore < 4) {
-            finalVerdict = "fail";
-        }
-    } else {
-        // No failed deterministic checks
-        if (finalScore >= 8 && evaluatorResult.verdict === 'fail') {
-             // We stick to evaluator's verdict unless it's contradictory. For now, trust finalScore.
-        }
+    // Determine the implied verdict tier from the final clamped score
+    let scoreTier = "fail";
+    if (finalScore >= 8) scoreTier = "pass";
+    else if (finalScore >= 4) scoreTier = "partial";
+    
+    // Any deterministic failure strictly forbids a "pass",
+    // regardless of the final numeric score.
+    if (detResult.failedChecks.length > 0 && scoreTier === "pass") {
+        scoreTier = "partial";
+    }
+
+    // Apply the downgrade. We only downgrade, never upgrade the evaluator's 
+    // original verdict unless it's contradictory (e.g. LLM score 2 but verdict 'pass').
+    const rank = v => v === "pass" ? 3 : (v === "partial" ? 2 : 1);
+    if (rank(scoreTier) < rank(finalVerdict)) {
+        finalVerdict = scoreTier;
     }
 
     return {

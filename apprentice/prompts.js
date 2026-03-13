@@ -149,9 +149,10 @@ The program must be executable with: bun run <filename>.js
  *   - task: {object} { request, wireframe?, cols?, rows? }
  *   - runResult: {object} { screenText, stderr, exitCode, timedOut }
  * Outputs: {string} the full evaluator prompt text
- * Side effects: None
- * Failure behavior: Casts missing truthy values in runResult to "(empty)" for safety.
- * Important assumptions: Enforces truth invariant by strictly excluding the generated script.
+ * Scoring behavior: Instructs LLM to generate a strict, integer-like score 0-10 based purely on visual faithfulness and completeness.
+ * Merge logic: The generated instruction ensures structured output used as the baseline for hybrid scoring deduplication/penalties.
+ * Edge cases: Missing stderr, screentext, or runtime metrics are replaced with placeholder "(empty)" tags to avoid misleading the LLM.
+ * Failure behavior: Casts missing truthy values in runResult to "(empty)" for safety. Will not crash if data is partially omitted.
  */
 function buildEvaluatorPrompt(task, runResult) {
     const cols = task.cols || CONFIG.terminal.cols;

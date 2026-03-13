@@ -59,7 +59,7 @@ test('Examples test suite', async function (t) {
         require(example.path);
 
         await new Promise(function (resolve) {
-          setTimeout(resolve, 50);
+          setTimeout(resolve, 250);
         });
 
         if (timerController.intervals.length > 0) {

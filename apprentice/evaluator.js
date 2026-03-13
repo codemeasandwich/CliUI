@@ -16,9 +16,10 @@ const { askEvaluator } = require("./gateway");
  *   - api: {object} Connected api-ape client for LLM communication.
  *   - prompt: {string} Pre-built evaluator prompt text containing context.
  * Outputs: {Promise<object>} Parsed evaluator verdict (score, verdict, critique, etc).
- * Side effects: Sends network requests to the local gateway server via `askEvaluator`.
+ * Scoring behavior: Relies on the external LLM to grade output from 0-10 based purely on visual and functional matching of task specs.
+ * Merge logic: The result from this LLM provides the base subjective score for hybrid scoring.
+ * Edge cases: Safely parses JSON extracted from markdown fences if standard object parsing fails.
  * Failure behavior: Catches network/API errors and JSON parsing errors, returning a structured error object with `_parse_error: true` so the episode can continue.
- * Important assumptions: Assumes the API is responsive and the LLM usually returns JSON, gracefully falling back to regex extraction if markdown fences are used.
  */
 async function evaluate(api, prompt) {
     let rawResponse;

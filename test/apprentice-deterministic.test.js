@@ -131,3 +131,15 @@ test("calculateHybridScore: severe penalties clamp and force failure", () => {
     assert.strictEqual(hybrid.verdict, "fail");
     assert.ok(hybrid.finalScore <= 4);
 });
+
+test("calculateHybridScore: never upgrades a fail verdict", () => {
+    const evaluator = { score: 6, verdict: "fail", critique: "It failed visually.", suggested_next_change: "" };
+    // 1 standard penalty
+    const detResult = { passedChecks: ["runtime_success"], failedChecks: ["expects_border: missing"] };
+    
+    const hybrid = calculateHybridScore(evaluator, detResult);
+    
+    assert.strictEqual(hybrid.finalScore, 4);
+    assert.strictEqual(hybrid.verdict, "fail"); // Should NOT upgrade to "partial"
+});
+

@@ -16,11 +16,15 @@
  */
 
 /**
- * Run deterministic checks on the execution result.
- * 
- * @param {object} task - Original task payload containing expectations
- * @param {object} runResult - Execution result { screenText, stderr, exitCode, timedOut }
- * @returns {object} { passedChecks: string[], failedChecks: string[] }
+ * Purpose: Run deterministic checks on the execution result.
+ * Inputs:
+ *   - task: {object} Original task payload containing expectations
+ *   - runResult: {object} Execution result { screenText, stderr, exitCode, timedOut }
+ * Outputs: {object} { passedChecks: string[], failedChecks: string[] }
+ * Scoring behavior: Evaluates execution output producing pass/fail signals. Does not output a numeric score itself.
+ * Merge logic: The signals outputted are used by the hybrid scorer to penalize the base evaluator score.
+ * Edge cases: Handles missing output, varied title formats, missing properties natively.
+ * Failure behavior: Never throws; falls back gracefully for invalid checks.
  */
 function runDeterministicChecks(task, runResult) {
     const passedChecks = [];
