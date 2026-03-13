@@ -1,17 +1,14 @@
 #!/usr/bin/env bun
 
 /**
- * apprentice.js — Phase 5: Learning Distillation, Retrieval, and Reuse
+ * apprentice.js
  *
- * Entry point for the trainer. Runs one complete episode with
- * iterative refinement:
- *   1. Connect to LLM Gateway via api-ape
- *   2. Run the multi-attempt loop (generate → execute → evaluate → revise)
- *   3. Stop when pass threshold, max attempts, no-progress, or error
- *   4. Save per-attempt artifacts and episode summary
- *
- * Primary invariant: Each revision attempt is based on real output
- * and evaluator feedback from the previous attempt — never invented.
+ * Purpose: Entry point for the Apprentice system.
+ * Responsibilities: Orchestrates the core execution loop (generate -> execute -> evaluate) and provides various CLI utility modes.
+ * Major sections:
+ *   - runEpisode: Runs the core loop.
+ *   - main: CLI entrypoint and argument parsing.
+ * Important invariants: Each attempt is evaluated solely on its real captured output — never invented or guessed.
  *
  * Runtime: Bun (JavaScript)
  * LLM access: local LLM Gateway via api-ape WebSocket RPC
@@ -50,15 +47,14 @@ const TASK = {
 };
 
 /**
- * Run one complete episode of the multi-attempt refinement loop.
- *
- * Pipeline: connect → attempt loop → summary → close.
- * Each attempt within the loop persists its own artifacts. The
- * episode summary is written after all attempts complete.
- *
- * @param {object} task — task payload { request, wireframe?, cols?, rows? }
- * @param {boolean} [disableRetrieval=false] — whether learning retrieval is disabled
- * @returns {Promise<{episodeDir: string, summary: object}>}
+ * Purpose: Run one complete episode of the multi-attempt refinement loop.
+ * Inputs:
+ *   - task: {object} task payload { request, wireframe?, cols?, rows? }
+ *   - disableRetrieval: {boolean} [default=false] whether learning retrieval is disabled
+ * Outputs: {Promise<{episodeDir: string, summary: object}>} Contains the path to the episode directory and the summary object.
+ * Side effects: Bootstraps learning directories, connects to the LLM gateway, creates an episode directory, logs progress to stdout, saves the summary, and distills learning artifacts locally.
+ * Failure behavior: Ensure WebSocket connection is closed in `finally` block to prevent resource leaks. Throws underlying errors upward.
+ * Important assumptions: Assumes `api-ape` gateway is reachable and that task object has the expected keys.
  */
 async function runEpisode(task, disableRetrieval = false) {
     // Ensure all eight learning/ subdirectories exist before any
@@ -127,19 +123,12 @@ async function runEpisode(task, disableRetrieval = false) {
 }
 
 /**
- * Main CLI entrypoint. Parses arguments to determine the operating mode.
- * 
- * Domain: The primary control surface for the Apprentice system. By default, 
- * it runs a single episode to solve a hardcoded task. But it also exposes 
- * utility modes like benchmarks, replay, cache cleanup, and artifact export.
- * Technical: Reads process.argv. Switches between `runEpisode`, `runBenchmarkSuite`,
- * `exportLearning`, and `runCleanupAndPromotion` based on the provided flags.
- * Intent & Trade-offs: The default mode uses a hardcoded task to keep the 
- * developer experience simple for rapid iteration without needing a complex TUI.
- * Assumptions/Failures: Catches all unhandled promises. Exits with process.exitCode = 1 
- * and prints the stack trace if any mode catastrophically fails.
- * 
- * @returns {Promise<void>}
+ * Purpose: Main CLI entrypoint. Parses arguments to determine the operating mode.
+ * Inputs: None directly (reads process.argv for flags like --benchmark, --export, etc.).
+ * Outputs: {Promise<void>} Resolves when the selected active mode completes.
+ * Side effects: Executes CLI specific routines (benchmarks, cleanup, episode running), writes files to the persistence directories, and prints results to stdout/stderr.
+ * Failure behavior: Catches all unhandled promises. Exits process with process.exitCode = 1 and prints the stack trace if any mode catastrophically fails.
+ * Important assumptions: Expects terminal dimensions from CONFIG and valid task definition if no alternate run mode is provided.
  */
 async function main() {
     try {

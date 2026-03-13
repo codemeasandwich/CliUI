@@ -1,28 +1,26 @@
 /**
- * apprentice/prompts.js — Prompt Builders
+ * apprentice/prompts.js
  *
- * Constructs the full prompt text for each actor. The Apprentice
- * prompt includes task context plus CliUI repo references and
- * optionally retrieved learning from prior episodes. The Evaluator
- * prompt includes the task and the real captured output — never
- * the generated code — to enforce the truth invariant.
- *
- * @module apprentice/prompts
+ * Purpose: Prompt Builders.
+ * Responsibilities: Constructs the full prompt text for each actor (Apprentice, Evaluator).
+ * Major sections:
+ *   - formatLearningSection: Formats prior learning artifacts for context.
+ *   - buildApprenticePrompt: Builds prompt for the Apprentice.
+ *   - buildEvaluatorPrompt: Builds prompt for the Evaluator.
+ * Important invariants: The Evaluator must never receive the generated script — only the task and the real captured output.
  */
 
 const CONFIG = require("./config");
 const { hasRetrievedContent } = require("./retrieve");
 
 /**
- * Format a concise learning section from retrieved artifacts for
- * inclusion in the Apprentice prompt. Returns an empty string
- * when no artifacts are available, so the prompt is unchanged.
- *
- * Keeps the section short: titles + brief bodies only. Full
- * exemplar scripts are truncated to prevent prompt bloat.
- *
- * @param {object|null} retrieved — result from retrieveForTask
- * @returns {string} formatted markdown section or empty string
+ * Purpose: Format a concise learning section from retrieved artifacts for inclusion in the Apprentice prompt.
+ * Inputs:
+ *   - retrieved: {object|null} result from retrieveForTask (skills, memories, exemplars, etc)
+ * Outputs: {string} formatted markdown section or empty string
+ * Side effects: None
+ * Failure behavior: Returns empty string if retrieved is null or empty.
+ * Important assumptions: Output is kept short and truncated to prevent prompt bloat.
  */
 function formatLearningSection(retrieved) {
     if (!hasRetrievedContent(retrieved)) return "";
@@ -71,18 +69,14 @@ function formatLearningSection(retrieved) {
 }
 
 /**
- * Build the Apprentice prompt.
- *
- * Tells the model what to build, terminal size to target, which
- * local repo files it may inspect, and that its response must be
- * a single runnable JS program with no commentary.
- *
- * When retrievedLearning is provided, appends a Prior Learning
- * section with relevant skills, memories, anti-patterns, and exemplars.
- *
- * @param {object}      task              — { request, wireframe?, cols?, rows? }
- * @param {object|null} [retrievedLearning] — result from retrieveForTask
- * @returns {string} the full prompt text
+ * Purpose: Build the Apprentice prompt containing task instructions and retrieved learning context.
+ * Inputs:
+ *   - task: {object} { request, wireframe?, cols?, rows? }
+ *   - retrievedLearning: {object|null} [optional] result from retrieveForTask
+ * Outputs: {string} the full prompt text
+ * Side effects: None
+ * Failure behavior: Assumes defaults from CONFIG if task dimensions are missing.
+ * Important assumptions: Instructs model to return a single runnable JS program with no commentary.
  */
 function buildApprenticePrompt(task, retrievedLearning) {
     const cols = task.cols || CONFIG.terminal.cols;
@@ -150,19 +144,14 @@ The program must be executable with: bun run <filename>.js
 }
 
 /**
- * Build the Evaluator prompt.
- *
- * The evaluator receives the original task, normalized terminal screen
- * text, stderr, exit code, and timed-out flag. It does NOT receive the
- * generated script, raw ANSI, or anything the Apprentice said —
- * enforcing the primary truth invariant.
- *
- * The normalized screen text is the primary evaluation surface: it
- * represents what a user would actually see in the terminal.
- *
- * @param {object} task      — { request, wireframe?, cols?, rows? }
- * @param {object} runResult — { screenText, stderr, exitCode, timedOut }
- * @returns {string} the full evaluator prompt text
+ * Purpose: Build the Evaluator prompt.
+ * Inputs:
+ *   - task: {object} { request, wireframe?, cols?, rows? }
+ *   - runResult: {object} { screenText, stderr, exitCode, timedOut }
+ * Outputs: {string} the full evaluator prompt text
+ * Side effects: None
+ * Failure behavior: Casts missing truthy values in runResult to "(empty)" for safety.
+ * Important assumptions: Enforces truth invariant by strictly excluding the generated script.
  */
 function buildEvaluatorPrompt(task, runResult) {
     const cols = task.cols || CONFIG.terminal.cols;

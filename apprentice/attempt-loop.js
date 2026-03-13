@@ -1,17 +1,12 @@
 /**
- * apprentice/attempt-loop.js — Multi-Attempt Orchestration Loop
+ * apprentice/attempt-loop.js
  *
- * Runs the core refinement loop: generate → execute → normalize →
- * evaluate → (revise or stop). Each attempt persists its artifacts
- * immediately for crash-safe inspection.
- *
- * Stop conditions (checked in priority order):
- *   1. Pass threshold — evaluator score >= CONFIG.passThreshold
- *   2. No-progress — detected by progress-detect module
- *   3. Max attempts — CONFIG.maxAttempts reached
- *   4. Runner error — unrecoverable script execution failure
- *
- * @module apprentice/attempt-loop
+ * Purpose: Multi-Attempt Orchestration Loop.
+ * Responsibilities: Runs the core refinement loop: generate → execute → normalize → evaluate → (revise or stop).
+ * Major sections:
+ *   - runSingleAttempt: Single pass execution logic.
+ *   - runAttemptLoop: Manages state across multiple attempts and checks stop conditions.
+ * Important invariants: Each attempt persists its artifacts immediately for crash-safe inspection.
  */
 
 const path = require("path");
@@ -31,13 +26,16 @@ const { runDeterministicChecks } = require("./deterministic");
 const { calculateHybridScore } = require("./hybrid-scorer");
 
 /**
- * Run a single attempt: prompt → extract → execute → normalize → evaluate.
- *
- * @param {object} api       — connected api-ape client
- * @param {string} prompt    — apprentice prompt (base or revision)
- * @param {object} task      — task payload { request, wireframe?, cols?, rows? }
- * @param {number} attemptNum — 1-based attempt number
- * @returns {Promise<object>} attempt result with all artifacts
+ * Purpose: Run a single execution attempt: prompt → extract → execute → normalize → evaluate.
+ * Inputs:
+ *   - api: {object} connected api-ape client
+ *   - prompt: {string} apprentice prompt (base or revision)
+ *   - task: {object} task payload { request, wireframe?, cols?, rows? }
+ *   - attemptNum: {number} 1-based attempt integer
+ * Outputs: {Promise<object>} attempt result with all execution artifacts and evaluator verdict
+ * Side effects: Invokes local script execution, normalizes PTY/terminal outputs, triggers gateway LLM evaluations, and logs progress.
+ * Failure behavior: Bubbles up unrecoverable script runner faults dynamically.
+ * Important assumptions: Requires deterministic execution environments and evaluator prompts to function cleanly.
  */
 async function runSingleAttempt(api, prompt, task, attemptNum) {
     const cols = task.cols || CONFIG.terminal.cols;
@@ -103,17 +101,16 @@ async function runSingleAttempt(api, prompt, task, attemptNum) {
 }
 
 /**
- * Run the multi-attempt refinement loop for one episode.
- *
- * Attempt 1 uses the base Apprentice prompt. Subsequent attempts
- * use a revision prompt containing real output and evaluator feedback
- * from the previous attempt. Stops on pass, stall, max, or error.
- *
- * @param {object} api              — connected api-ape client
- * @param {object} task             — task payload
- * @param {string} episodeDir       — absolute path to the episode folder
- * @param {boolean} [disableRetrieval=false] — if true, learning artifact retrieval is skipped
- * @returns {Promise<{ history: object[], stopReason: string, retrievedLearning: object|null }>}
+ * Purpose: Run the multi-attempt refinement loop for one episode.
+ * Inputs:
+ *   - api: {object} connected api-ape client
+ *   - task: {object} task payload
+ *   - episodeDir: {string} absolute path to the episode folder
+ *   - disableRetrieval: {boolean} [default=false] if true, learning artifact retrieval is skipped
+ * Outputs: {Promise<{ history: object[], stopReason: string, retrievedLearning: object|null }>} full attempt history and loop metadata
+ * Side effects: Fetches learning artifacts, loops attempt generations, manages prompt snapshots, persists attempt artifacts serially to disk.
+ * Failure behavior: Aborts the loop safely and returns "runner_error" if execution critically fails.
+ * Important assumptions: Stops automatically on passing score threshold, no-progress detection, or max attempts reached.
  */
 async function runAttemptLoop(api, task, episodeDir, disableRetrieval = false) {
     await ensureDirectory(episodeDir);

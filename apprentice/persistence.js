@@ -1,54 +1,41 @@
 /**
- * apprentice/persistence.js — Per-Attempt Artifact Persistence
+ * apprentice/persistence.js
  *
- * Saves all artifacts for a single attempt into a structured folder
- * under learning/episodes/<episodeId>/. Each attempt gets its own
- * prefixed set of files for inspection and debugging.
- *
- * Naming convention (zero-padded for natural sort):
- *   attempt_001.js          — generated script
- *   attempt_001-raw.ansi    — raw PTY stream
- *   attempt_001-screen.txt  — normalized final-frame text
- *   attempt_001-stderr.txt  — captured stderr
- *   attempt_001-evaluator.json — evaluator verdict
- *
- * Episode-level summary is handled by episode-summary.js.
- *
- * @module apprentice/persistence
+ * Purpose: Per-Attempt Artifact Persistence.
+ * Responsibilities: Saves all artifacts for a single attempt into a structured folder.
+ * Major sections:
+ *   - saveAttempt: Saves individual script, output, and evaluator results.
+ *   - saveEpisode: Legacy wrapper.
+ * Important invariants: Each attempt gets its own prefixed set of files to prevent overwrite races.
  */
 
 const path = require("path");
 const { ensureDirectory, writeText, attemptFilename } = require("./filesystem");
 
 /**
- * Derive the base name for attempt artifacts by stripping the .js
- * extension from the attempt filename. Used to construct the
- * prefixed artifact names (e.g., "attempt_001" → "attempt_001-screen.txt").
- *
- * @param {number} attemptNum — 1-based attempt number
- * @returns {string} base name without extension, e.g. "attempt_001"
+ * Purpose: Derive the base name for attempt artifacts by stripping the .js extension.
+ * Inputs:
+ *   - attemptNum: {number} 1-based attempt number
+ * Outputs: {string} base name without extension, e.g. "attempt_001"
+ * Side effects: None
+ * Failure behavior: None natively.
+ * Important assumptions: Uses the standard padded filename generation from `filesystem.js`.
  */
 function attemptBase(attemptNum) {
     return attemptFilename(attemptNum).replace(/\.js$/, "");
 }
 
 /**
- * Save all artifacts for a single attempt to the episode directory.
- *
- * Each artifact is named with the attempt prefix so multiple
- * attempts coexist in the same directory without conflicts.
- * Files are written sequentially to avoid partial-write races.
- *
- * @param {string} episodeDir  — absolute path to the episode folder
- * @param {number} attemptNum  — 1-based attempt number
- * @param {object} artifacts   — attempt data to persist
- * @param {string} artifacts.script          — generated JS source
- * @param {string} artifacts.rawAnsi         — raw PTY ANSI stream
- * @param {string} artifacts.screenText      — normalized screen text
- * @param {string} artifacts.stdout          — stdout (kept for compat)
- * @param {string} artifacts.stderr          — captured stderr
- * @param {object} artifacts.evaluatorResult — parsed evaluator response
- * @param {string[]} [retrievedArtifactIds]  — IDs of retrieved learning artifacts
+ * Purpose: Save all artifacts for a single attempt to the episode directory.
+ * Inputs:
+ *   - episodeDir: {string} absolute path to the episode folder
+ *   - attemptNum: {number} 1-based attempt number
+ *   - artifacts: {object} attempt data to persist containing script, rawAnsi, screenText, stderr, evaluatorResult
+ *   - retrievedArtifactIds: {string[]} [optional] IDs of retrieved learning artifacts
+ * Outputs: {Promise<void>}
+ * Side effects: Creates directories and files on the local filesystem.
+ * Failure behavior: Bubbles up filesystem `writeText` rejections if unable to write.
+ * Important assumptions: Sequential await writing prevents partial-write races. Memory artifacts are stringifiable.
  */
 async function saveAttempt(episodeDir, attemptNum, artifacts, retrievedArtifactIds) {
     await ensureDirectory(episodeDir);
@@ -99,12 +86,14 @@ async function saveAttempt(episodeDir, attemptNum, artifacts, retrievedArtifactI
 }
 
 /**
- * Legacy saveEpisode wrapper for backward compatibility with Phase 2.
- * Delegates to saveAttempt for the single-attempt case plus writes
- * episode metadata. Used only by existing Phase 2 tests.
- *
- * @param {string} episodeDir — absolute path to the episode folder
- * @param {object} artifacts  — all episode data (Phase 2 shape)
+ * Purpose: Legacy saveEpisode wrapper for backward compatibility with older tests.
+ * Inputs:
+ *   - episodeDir: {string} absolute path to the episode folder
+ *   - artifacts: {object} all episode data
+ * Outputs: {Promise<void>}
+ * Side effects: Calls `saveAttempt` and writes metadata file.
+ * Failure behavior: Bubbles up unhandled FS errors.
+ * Important assumptions: Only used by existing Phase 2+ compatible test suites.
  */
 async function saveEpisode(episodeDir, artifacts) {
     const num = artifacts.attemptNum || 1;

@@ -1,34 +1,24 @@
 /**
- * apprentice/evaluator.js — Evaluator Pipeline
+ * apprentice/evaluator.js
  *
- * Sends the task and captured output to the Evaluator actor,
- * parses the structured JSON response, and handles parse failures
- * gracefully by wrapping them in a structured error result.
- *
- * @module apprentice/evaluator
+ * Purpose: Evaluator Pipeline.
+ * Responsibilities: Sends the task and captured output to the Evaluator actor, parses the structured JSON response, and handles parse failures gracefully.
+ * Major sections:
+ *   - evaluate: Orchestrates the LLM call and JSON extraction.
+ * Important invariants: The evaluator must NEVER receive the generated script — only the text output.
  */
 
 const { askEvaluator } = require("./gateway");
 
 /**
- * Evaluate a script's execution result through the Evaluator actor.
- *
- * Domain: Acts as the primary automated feedback loop for the learning 
- * system. Judges the quality of an Apprentice's script execution against 
- * the original goal, assigning a score and providing a critique.
- * Technical: Sends original task and captured stdout/stderr/exitCode 
- * to the Evaluator via the gateway. Parses the JSON response into `{ score, 
- * verdict, critique, suggested_next_change }`.
- * Intent & Trade-offs: Built resiliently. Language models occasionally fail 
- * to adhere strictly to JSON schemes (e.g., wrapping in markdown). The parser 
- * attempts extraction rather than failing outright, to save the expensive LLM token run.
- * Assumptions/Failures: If the Evaluator entirely fails to respond or returns 
- * unparseable content, we return a structured "error" result (`_parse_error: true`) 
- * so the episode lifecycle can safely continue and the attempt is recorded.
- *
- * @param {object} api    - Connected api-ape client for LLM communication.
- * @param {string} prompt - Pre-built evaluator prompt text containing context.
- * @returns {Promise<object>} Parsed evaluator verdict.
+ * Purpose: Evaluate a script's execution result through the Evaluator actor.
+ * Inputs:
+ *   - api: {object} Connected api-ape client for LLM communication.
+ *   - prompt: {string} Pre-built evaluator prompt text containing context.
+ * Outputs: {Promise<object>} Parsed evaluator verdict (score, verdict, critique, etc).
+ * Side effects: Sends network requests to the local gateway server via `askEvaluator`.
+ * Failure behavior: Catches network/API errors and JSON parsing errors, returning a structured error object with `_parse_error: true` so the episode can continue.
+ * Important assumptions: Assumes the API is responsive and the LLM usually returns JSON, gracefully falling back to regex extraction if markdown fences are used.
  */
 async function evaluate(api, prompt) {
     let rawResponse;

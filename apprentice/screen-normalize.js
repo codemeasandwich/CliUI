@@ -1,26 +1,25 @@
 /**
- * apprentice/screen-normalize.js — ANSI → Plain Text Final Frame
+ * apprentice/screen-normalize.js
  *
- * Converts raw terminal output (with ANSI escape sequences, cursor
- * movements, box drawing, colors) into a plain-text representation
- * of the final screen state. This is the "what the user would see"
- * snapshot used by the Evaluator.
- *
- * Uses screen-csi.js for CSI command processing and scroll ops.
- * Zero external dependencies.
- *
- * @module apprentice/screen-normalize
+ * Purpose: ANSI to Plain Text translator.
+ * Responsibilities: Converts raw terminal output (ANSI escape sequences, cursor movements, boxes) into a static plain-text representation (the final screen state).
+ * Major sections:
+ *   - createGrid / serializeGrid: Virtual frame buffer management.
+ *   - normalizeScreen: Main parser loop processing bytes and CSI sequences.
+ * Important invariants: The output matches exactly what a user would see on the terminal screen at exit (the snapshot).
  */
 
 const { processCsi, scrollUp } = require("./screen-csi");
 
 /**
- * Create a rows × cols grid of spaces. Each row is an array of
- * single characters representing the terminal screen buffer.
- *
- * @param {number} rows — number of rows
- * @param {number} cols — number of columns
- * @returns {string[][]} 2D character grid initialized to spaces
+ * Purpose: Create a rows × cols grid initialized with spaces.
+ * Inputs:
+ *   - rows: {number} number of terminal rows
+ *   - cols: {number} number of terminal columns
+ * Outputs: {string[][]} 2D character grid
+ * Side effects: Allocates memory for the 2D array matrix.
+ * Failure behavior: Throws native OutOfMemory exceptions if dimensions are impossibly large.
+ * Important assumptions: Output is mutated iteratively by the parser later.
  */
 function createGrid(rows, cols) {
     const grid = [];
@@ -31,12 +30,13 @@ function createGrid(rows, cols) {
 }
 
 /**
- * Serialize the grid to a plain-text string. Trims trailing spaces
- * from each row and trailing blank lines from the output, but
- * preserves all internal spacing and box-drawing characters.
- *
- * @param {string[][]} grid — the character grid
- * @returns {string} final screen text
+ * Purpose: Serialize the 2D character grid into a single plain-text string.
+ * Inputs:
+ *   - grid: {string[][]} the character grid
+ * Outputs: {string} final screen text
+ * Side effects: None
+ * Failure behavior: None
+ * Important assumptions: Trims trailing spaces from rows and trailing blank lines from the buffer bottom, but strictly preserves internal format.
  */
 function serializeGrid(grid) {
     const lines = grid.map((row) => row.join("").trimEnd());
@@ -51,14 +51,15 @@ function serializeGrid(grid) {
 }
 
 /**
- * Convert raw ANSI terminal output into a plain-text final-frame
- * representation. Builds a virtual screen buffer, processes all
- * escape sequences, and returns the visible text.
- *
- * @param {string} rawAnsi — raw terminal output with ANSI escapes
- * @param {number} cols    — terminal width in columns
- * @param {number} rows    — terminal height in rows
- * @returns {string} normalized plain text of the final screen
+ * Purpose: Convert raw ANSI terminal output into a plain-text final-frame representation.
+ * Inputs:
+ *   - rawAnsi: {string} raw terminal output containing ANSI escapes
+ *   - cols: {number} terminal width in columns
+ *   - rows: {number} terminal height in rows
+ * Outputs: {string} normalized plain text of the final screen
+ * Side effects: Creates and mutates a virtual screen buffer object in memory. Routes CSI commands to screen-csi module.
+ * Failure behavior: Silently skips unknown or malformed escape sequences to ensure a best-effort render rather than crashing.
+ * Important assumptions: Relies on `processCsi` from `screen-csi.js` to handle complex terminal formatting.
  */
 function normalizeScreen(rawAnsi, cols, rows) {
     const grid = createGrid(rows, cols);

@@ -1,17 +1,12 @@
 /**
- * apprentice/pty-runner.js — PTY-Backed Script Execution
+ * apprentice/pty-runner.js
  *
- * Spawns scripts inside a real pseudoterminal so TUI programs
- * produce genuine ANSI output (colors, cursor moves, box drawing).
- * Uses node-pty for the PTY allocation and provides the same
- * result shape as the basic child_process runner, plus a rawAnsi
- * field containing the full terminal byte stream.
- *
- * Stderr separation: PTY merges stdout and stderr into one stream.
- * We redirect stderr to a temp file via a wrapper shell command,
- * then read it back after the process exits.
- *
- * @module apprentice/pty-runner
+ * Purpose: PTY-Backed script execution environment.
+ * Responsibilities: Spawns scripts inside a real pseudoterminal so TUI programs produce genuine ANSI output (colors, cursor moves, box drawing).
+ * Major sections:
+ *   - loadNodePty / isPtyAvailable: Environment capability detection.
+ *   - runScriptPty: Core function to spawn PTY and capture raw ANSI stream.
+ * Important invariants: Stderr must be redirected and captured separately since PTY inherently merges stdout and stderr.
  */
 
 const path = require("path");
@@ -21,11 +16,12 @@ const crypto = require("crypto");
 const CONFIG = require("./config");
 
 /**
- * Attempt to load node-pty. Returns null if the native addon
- * is unavailable (e.g. missing build tools, unsupported platform).
- * The caller uses this to decide whether to fall back to spawn.
- *
- * @returns {object|null} the node-pty module or null
+ * Purpose: Attempt to load the node-pty native addon.
+ * Inputs: None
+ * Outputs: {object|null} the node-pty module object or null if unavailable.
+ * Side effects: First call requires access to native modules; logs a warning if compilation or loading fails.
+ * Failure behavior: Catches require errors gracefully and returns null, preventing fatal crashes on unsupported systems.
+ * Important assumptions: Called once and cached at module load time.
  */
 function loadNodePty() {
     try {
@@ -44,20 +40,24 @@ function loadNodePty() {
 const pty = loadNodePty();
 
 /**
- * Whether the PTY runner is available on this system.
- * Exported so the runner module can check before calling.
- *
- * @returns {boolean} true if node-pty loaded successfully
+ * Purpose: Determine whether the PTY runner is available on this system.
+ * Inputs: None
+ * Outputs: {boolean} true if node-pty loaded successfully.
+ * Side effects: None
+ * Failure behavior: None
+ * Important assumptions: `loadNodePty` has already been called and its result cached in the upper module scope.
  */
 function isPtyAvailable() {
     return pty !== null;
 }
 
 /**
- * Generate a unique temporary file path for stderr capture.
- * Uses the OS temp directory + a random suffix to avoid collisions.
- *
- * @returns {string} absolute path to a unique temp file
+ * Purpose: Generate a unique temporary file path for stderr capture.
+ * Inputs: None
+ * Outputs: {string} absolute path to a unique temp file
+ * Side effects: Uses crypto to generate random bytes.
+ * Failure behavior: Propagates crypto errors if system entropy is exhausted.
+ * Important assumptions: The OS temp directory is writable and disk space is available.
  */
 function stderrTempPath() {
     const id = crypto.randomBytes(4).toString("hex");
@@ -65,12 +65,12 @@ function stderrTempPath() {
 }
 
 /**
- * Build the PTY environment object by merging the current process
- * environment with the configured terminal environment overrides.
- * These overrides enforce deterministic locale and terminal type
- * so the TUI output is consistent across machines.
- *
- * @returns {object} key-value environment for the PTY child
+ * Purpose: Build the PTY environment object by merging process env with terminal overrides.
+ * Inputs: None
+ * Outputs: {object} key-value environment map for the PTY child process
+ * Side effects: None
+ * Failure behavior: None
+ * Important assumptions: Overrides (`CONFIG.terminal.env`) enforce deterministic locale and terminal type so TUI output is consistent across environments.
  */
 function buildPtyEnv() {
     return {
@@ -80,20 +80,14 @@ function buildPtyEnv() {
 }
 
 /**
- * Run a script inside a real pseudoterminal and capture the output.
- *
- * Spawns a shell wrapper that redirects stderr to a temp file while
- * the main output flows through the PTY. The wrapper command:
- *   bun run <script> 2>/path/to/stderr.txt
- *
- * All PTY data (stdout with ANSI sequences) is accumulated into
- * rawAnsi. After the process exits, stderr is read from the temp
- * file and cleaned up.
- *
- * @param {string} scriptPath — absolute path to the .js file
- * @param {number} timeoutMs  — max wall-clock milliseconds
- * @returns {Promise<{stdout: string, stderr: string, rawAnsi: string,
- *   exitCode: number, timedOut: boolean, durationMs: number}>}
+ * Purpose: Run a script inside a real pseudoterminal and capture the output.
+ * Inputs:
+ *   - scriptPath: {string} absolute path to the .js executable file
+ *   - timeoutMs: {number} max wall-clock execution milliseconds permitted
+ * Outputs: {Promise<{stdout: string, stderr: string, rawAnsi: string, exitCode: number, timedOut: boolean, durationMs: number}>} structured execution payload
+ * Side effects: Spawns a new shell process via native API, writes stderr to a temporary file, and cleans up the temp file on resolution. Sets asynchronous timeout timers.
+ * Failure behavior: Resolves with a fallback error payload containing exitCode 1 and stderr message if PTY spawn fails synchronously. Temp file cleanup errors are ignored best-effort.
+ * Important assumptions: Relies on `node-pty` being successfully loaded. Assumes host has `/bin/sh` or `$SHELL` available.
  */
 function runScriptPty(scriptPath, timeoutMs) {
     return new Promise((resolve) => {

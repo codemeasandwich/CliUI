@@ -1,27 +1,25 @@
 /**
- * apprentice/gateway.js — LLM Gateway Communication
+ * apprentice/gateway.js
  *
- * Connects to the local LLM Gateway via api-ape WebSocket RPC.
- * Provides a streaming-buffered request function and two convenience
- * wrappers — one for the Apprentice actor, one for the Evaluator.
- * The stream is consumed internally; callers receive the fully
- * buffered response text.
- *
- * @module apprentice/gateway
+ * Purpose: Connects to and interacts with the LLM Gateway.
+ * Responsibilities: Handles WebSocket connection setup, streaming token ingestion, and provides wrapper methods for specific agent LLM requests (Apprentice, Evaluator).
+ * Major sections:
+ *   - connectGateway: Establishes and verifies the WebSocket handshake.
+ *   - requestLLM: Core function for subscribing to token streams and resolving complete responses.
+ *   - askApprentice / askEvaluator: Convenience wrappers for the two actors.
+ * Important invariants: All LLM requests must stream to avoid blocking, with a hard timeout to prevent indefinite hangs.
  */
 
 const CONFIG = require("./config");
 
 /**
- * Establish the WebSocket connection to the LLM Gateway and wait
- * for the connection to be ready before returning.
- *
- * Uses api-ape's onConnectionChange callback to detect the
- * 'connected' state, matching the pattern from the gateway's own
- * E2E test suite. Timeout after 10s to avoid hanging if down.
- *
- * @param {object} api — the api-ape client module
- * @returns {Promise<void>} resolves when connected
+ * Purpose: Establish the WebSocket connection to the LLM Gateway and wait for the connection to be ready before returning.
+ * Inputs:
+ *   - api: {object} the api-ape client module instance
+ * Outputs: {Promise<void>} resolves when the connection is fully established.
+ * Side effects: Connects websocket socket, registers an onConnectionChange listener, and logs to console.
+ * Failure behavior: Rejects if the 'connected' state is not reached within 10 seconds.
+ * Important assumptions: Assumes the API server corresponds to CONFIG.gateway host/port and `api-ape` provides `onConnectionChange`.
  */
 async function connectGateway(api) {
     api.connect(CONFIG.gateway.host, CONFIG.gateway.port);
@@ -55,18 +53,16 @@ async function connectGateway(api) {
 }
 
 /**
- * Send a prompt to the LLM Gateway, stream the response tokens
- * via api-ape pub/sub, and buffer them into a single string.
- *
- * Subscribes to the stream channel and accumulates text chunks
- * until message_stop. On stream error, rejects with diagnostics.
- * A 5-minute timeout prevents indefinite hangs if the stream stalls.
- *
- * @param {object} api      — the api-ape client module (connected)
- * @param {string} prompt   — the full prompt text to send
- * @param {string} provider — which LLM provider to route to
- * @param {string} [model]  — optional model name for the provider
- * @returns {Promise<string>} the complete response text
+ * Purpose: Send a prompt to the LLM Gateway, stream the response tokens via api-ape pub/sub, and buffer them into a single string.
+ * Inputs:
+ *   - api: {object} the connected api-ape client module
+ *   - prompt: {string} the full prompt text to send
+ *   - provider: {string} which LLM provider to route to
+ *   - model: {string} [optional] model name for the provider
+ * Outputs: {Promise<string>} the completely buffered response text.
+ * Side effects: Subscribes to the stream channel, accumulates text chunks, and logs the stream's requestId to the console.
+ * Failure behavior: Rejects if the stream times out (5 mins), throws an API error, or completes with an exit code != 0 with no content.
+ * Important assumptions: Expects the stream to terminate with a `message_stop` event containing the final exit code.
  */
 async function requestLLM(api, prompt, provider, model) {
     // Build the request payload. Only include model when explicitly
@@ -146,11 +142,14 @@ async function requestLLM(api, prompt, provider, model) {
 }
 
 /**
- * Ask the Apprentice actor to generate runnable JavaScript for a task.
- *
- * @param {object} api  — connected api-ape client
- * @param {string} prompt — built apprentice prompt text
- * @returns {Promise<string>} the raw Apprentice response
+ * Purpose: Ask the Apprentice actor to generate runnable JavaScript for a task.
+ * Inputs:
+ *   - api: {object} connected api-ape client
+ *   - prompt: {string} built apprentice prompt text
+ * Outputs: {Promise<string>} raw Apprentice response string
+ * Side effects: Logs sending attempt to console.
+ * Failure behavior: Bubbles up any connection or extraction rejections from `requestLLM`.
+ * Important assumptions: `requestLLM` handles timeout and connection stability.
  */
 async function askApprentice(api, prompt) {
     console.log("[apprentice] Sending task to Apprentice…");
@@ -158,13 +157,14 @@ async function askApprentice(api, prompt) {
 }
 
 /**
- * Ask the Evaluator actor to score captured output.
- * The Evaluator receives ONLY the task and captured output — never
- * the generated script — enforcing the primary truth invariant.
- *
- * @param {object} api    — connected api-ape client
- * @param {string} prompt — built evaluator prompt text
- * @returns {Promise<string>} raw evaluator response (should be JSON)
+ * Purpose: Ask the Evaluator actor to score captured output.
+ * Inputs:
+ *   - api: {object} connected api-ape client
+ *   - prompt: {string} built evaluator prompt text containing captured real output
+ * Outputs: {Promise<string>} raw evaluator response (expected to be JSON format)
+ * Side effects: Logs sending attempt to console.
+ * Failure behavior: Bubbles up rejections from `requestLLM`.
+ * Important assumptions: Evaluator prompt MUST ONLY contain task description and real execution output, never the generated script.
  */
 async function askEvaluator(api, prompt) {
     console.log("[evaluator] Sending captured output to Evaluator…");
