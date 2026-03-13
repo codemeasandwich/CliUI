@@ -56,10 +56,12 @@
   },
   "dependencies": {
     "ansi-term": ">=0.0.2",
+    "api-ape": "file:../api-ape",
     "drawille-canvas-blessed-contrib": ">=0.1.3",
     "map-canvas": ">=0.1.5",
     "marked": "^4.0.12",
     "marked-terminal": "^5.1.1",
+    "node-pty": "^1.1.0",
     "picture-tuber": "^1.0.1"
   }
 }
