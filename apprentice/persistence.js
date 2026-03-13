@@ -33,8 +33,25 @@ function attemptBase(attemptNum) {
  *   - artifacts: {object} attempt data to persist containing script, rawAnsi, screenText, stderr, evaluatorResult
  *   - retrievedArtifactIds: {string[]} [optional] IDs of retrieved learning artifacts
  * Outputs: {Promise<void>}
+ *
+ * Written paths (all under episodeDir, NNN = zero-padded attemptNum):
+ *   - attempt_NNN.js           — generated JavaScript source (always written)
+ *   - attempt_NNN-raw.ansi     — raw PTY ANSI byte stream (only if non-empty)
+ *   - attempt_NNN-screen.txt   — normalized plain-text screen snapshot (always written)
+ *   - attempt_NNN-stderr.txt   — captured stderr output (always written, may be empty)
+ *   - attempt_NNN-evaluator.json — structured evaluator verdict as JSON (always written)
+ *   - attempt_NNN-retrieved.json — IDs of consulted learning artifacts (only if non-empty)
+ *
+ * File formats:
+ *   - .js files are raw JavaScript source
+ *   - .ansi files are raw terminal byte streams with ANSI escape sequences
+ *   - .txt files are plain UTF-8 text
+ *   - .json files are pretty-printed (2-space indent) JSON
+ *
  * Side effects: Creates directories and files on the local filesystem.
  * Failure behavior: Bubbles up filesystem `writeText` rejections if unable to write.
+ *   Files are written sequentially, so a failure mid-way leaves earlier files intact.
+ *   On retry, all files are overwritten from scratch.
  * Important assumptions: Sequential await writing prevents partial-write races. Memory artifacts are stringifiable.
  */
 async function saveAttempt(episodeDir, attemptNum, artifacts, retrievedArtifactIds) {

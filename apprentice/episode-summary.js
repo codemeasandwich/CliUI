@@ -83,6 +83,10 @@ function buildSummary(episodeId, task, history, stopReason) {
  *   - episodeDir: {string} absolute path to the episode folder
  *   - summary: {object} the summary object from buildSummary
  * Outputs: {Promise<void>}
+ *
+ * Written paths:
+ *   - <episodeDir>/episode-summary.json — pretty-printed (2-space indent) JSON
+ *
  * Side effects: Writes episode-summary.json to the filesystem.
  * Failure behavior: Bubbles up writeText errors if unable to write.
  * Important assumptions: episodeDir must already exist.

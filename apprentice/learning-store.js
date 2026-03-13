@@ -1,7 +1,7 @@
 /**
  * apprentice/learning-store.js — Learning Directory Bootstrap & ID Helpers
  *
- * Ensures all eight learning/ subdirectories exist on startup so that
+ * Ensures all ten learning/ subdirectories exist on startup so that
  * artifact writers, index managers, and prompt snapshots have reliable
  * write targets. Also provides ID generators for artifact types.
  *
@@ -40,6 +40,14 @@ function learningDirPaths() {
 /**
  * Create all learning directories. Uses ensureDirectory (recursive mkdir)
  * so intermediate parents are created and existing dirs are no-ops.
+ *
+ * Written paths: Creates up to 10 directories under the learning/ base
+ * (episodes, skills, memories, exemplars, anti-patterns, indexes,
+ * prompts, summaries, benchmarks, benchmarks/reports).
+ *
+ * Failure behavior: Throws an Error if any directory creation fails
+ * (bubbled from ensureDirectory). Directories are created sequentially,
+ * so a failure mid-way leaves earlier directories intact.
  *
  * @returns {Promise<void>}
  */

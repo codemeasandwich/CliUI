@@ -16,6 +16,21 @@
  * Returns an object with the parsed key-value pairs.
  * Handles: strings, numbers, arrays (inline [a, b, c]).
  *
+ * Written paths: None (pure parser, no I/O).
+ *
+ * Assumptions:
+ *   - Front-matter block starts at line 1 (no leading content)
+ *   - Only covers the shape produced by formatFrontMatter in artifact-writers.js
+ *   - Nested YAML objects, multi-line values, and block arrays are unsupported
+ *   - ISO timestamps survive the number check because formatFrontMatter
+ *     wraps them in double quotes — the quote-stripping branch fires first,
+ *     and the stripped value "2026-03-13T08:03:33.432Z" contains non-numeric
+ *     characters so isNaN() returns true, preserving it as a string
+ *
+ * Failure behavior: Returns an empty object ({}) if the content has no
+ * valid front-matter block. Never throws — malformed lines are silently
+ * skipped (no colon separator means the line is ignored).
+ *
  * @param {string} content — full file content with front-matter
  * @returns {object} parsed front-matter key-value pairs
  */

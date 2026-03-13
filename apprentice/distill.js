@@ -314,6 +314,18 @@ async function maybeExtractSkill(episodeId, task, history) {
  * four extraction routines and returns the full list of created
  * artifacts for metadata tracking.
  *
+ * Written paths (delegated to artifact-writers.js):
+ *   - learning/memories/<id>.md       — from extractMemories
+ *   - learning/exemplars/<id>.md      — from extractExemplar
+ *   - learning/anti-patterns/<id>.md  — from extractAntiPatterns
+ *   - learning/skills/<id>.md         — from maybeExtractSkill
+ *   - learning/indexes/*.json         — updated by addToIndex via each writer
+ *
+ * Failure behavior: If any individual artifact write fails, the error
+ * propagates immediately — already-written artifacts remain on disk.
+ * Partial distillation is safe because each artifact + index update is
+ * independent. On re-run, new IDs are generated (no collision risk).
+ *
  * @param {string}   episodeId  — unique episode identifier
  * @param {object}   task       — original task payload
  * @param {object[]} history    — array of per-attempt result objects

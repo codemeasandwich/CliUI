@@ -54,6 +54,24 @@ function formatFrontMatter(meta) {
  * Handles: ID generation, directory creation, file write,
  * and index append in a single consistent pipeline.
  *
+ * Written paths:
+ *   - learning/<type>/<id>.md      — the markdown artifact with YAML front-matter
+ *   - learning/indexes/<type>s.json — updated index (via addToIndex)
+ *
+ * File format: YAML front-matter (--- delimited) followed by blank line
+ * and markdown body. Front-matter contains: id, type, title, tags,
+ * confidence, createdAt, source, plus any opts.extra fields.
+ *
+ * Assumptions:
+ *   - CONFIG.paths are set before calling (bootstrapLearningDirs called first)
+ *   - opts.title, opts.body, and opts.tags are strings/arrays (not validated)
+ *   - Duplicate IDs are statistically impossible (timestamp + random suffix)
+ *
+ * Failure behavior: Throws an Error if directory creation or file write
+ * fails (bubbled from ensureDirectory/writeText). Index update failure
+ * also throws, leaving the artifact written but unindexed — rebuildIndex
+ * can recover.
+ *
  * @param {string} type      — artifact type (memory, skill, exemplar, anti-pattern)
  * @param {string} targetDir — absolute path to the type's directory
  * @param {object} opts      — artifact content and metadata

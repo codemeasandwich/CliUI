@@ -88,6 +88,13 @@ async function readIndex(type) {
  * Assumptions/Edge Cases: If `entry` lacks fields like `confidence` or `createdAt`, 
  * it populates safe defaults.
  *
+ * Written paths:
+ *   - learning/indexes/<type>s.json — the updated JSON index array
+ *
+ * Failure behavior: Throws if readIndex fails with non-ENOENT error or
+ * if writeText fails. Index may be left in a partially-updated state if
+ * the write is interrupted (no atomic rename).
+ *
  * @param {string} type  - Artifact type (memory, skill, exemplar, anti-pattern).
  * @param {object} entry - Index entry to append or update.
  * @returns {Promise<void>}
@@ -133,6 +140,13 @@ async function addToIndex(type, entry) {
  * artifact is malformed without an `id` block, it will be skipped entirely to 
  * prevent corrupting the JSON index.
  * Assumptions/Invariants: Only scans files ending in `.md`.
+ *
+ * Written paths:
+ *   - learning/indexes/<type>s.json — the rebuilt JSON index array
+ *
+ * Failure behavior: Throws for unknown type. Returns empty array if the
+ * artifact directory doesn't exist (ENOENT). Throws for other readdir or
+ * readFile errors. Malformed files without an `id` field are silently skipped.
  *
  * @param {string} type - Artifact type.
  * @returns {Promise<object[]>} The rebuilt index entries.
