@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 /**
- * apprentice.js — Phase 4: Learning Store Scaffolding
+ * apprentice.js — Phase 5: Learning Distillation, Retrieval, and Reuse
  *
  * Entry point for the trainer. Runs one complete episode with
  * iterative refinement:
@@ -25,6 +25,7 @@ const { connectGateway } = require("./apprentice/gateway");
 const { runAttemptLoop } = require("./apprentice/attempt-loop");
 const { bootstrapLearningDirs } = require("./apprentice/learning-store");
 const { buildSummary, saveEpisodeSummary } = require("./apprentice/episode-summary");
+const { distillEpisode } = require("./apprentice/distill");
 
 /**
  * Hardcoded task for Phase 4.
@@ -96,6 +97,21 @@ async function runEpisode(task) {
         console.log(`  Artifacts: ${episodeDir}`);
         console.log(`${"=".repeat(60)}\n`);
 
+        // Step 5 — Distill learning artifacts from the episode.
+        // Analyzes attempt history and creates memories, exemplars,
+        // anti-patterns, and (conservatively) skills.
+        const distillResult = await distillEpisode(
+            id, task, history, stopReason
+        );
+        if (distillResult.created.length > 0) {
+            console.log(`  Distilled ${distillResult.created.length} learning artifact(s):`);
+            for (const a of distillResult.created) {
+                console.log(`    - ${a.type}: ${a.id}`);
+            }
+        } else {
+            console.log("  No learning artifacts distilled from this episode.");
+        }
+
         return { episodeDir, summary };
     } finally {
         // Close the WebSocket connection to prevent resource leak.
@@ -112,7 +128,7 @@ async function runEpisode(task) {
  */
 async function main() {
     try {
-        console.log("Apprentice Phase 4 — Learning Store Scaffolding");
+        console.log("Apprentice Phase 5 — Learning Distillation, Retrieval, and Reuse");
         console.log(`Gateway: ws://${CONFIG.gateway.host}:${CONFIG.gateway.port}`);
         console.log(`Apprentice provider: ${CONFIG.apprenticeProvider}`);
         console.log(`Evaluator provider: ${CONFIG.evaluatorProvider}`);
@@ -120,7 +136,7 @@ async function main() {
         console.log(`Terminal: ${CONFIG.terminal.cols}x${CONFIG.terminal.rows}`);
 
         const { episodeDir, summary } = await runEpisode(TASK);
-        console.log("✓ Phase 4 complete. Episode saved to:", episodeDir);
+        console.log("✓ Phase 5 complete. Episode saved to:", episodeDir);
         console.log(`  Result: ${summary.finalVerdict} after ${summary.totalAttempts} attempt(s)`);
     } catch (err) {
         console.error("\n✗ Episode failed:", err.message);

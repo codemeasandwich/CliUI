@@ -26,6 +26,7 @@ const { evaluate } = require("./evaluator");
 const { saveAttempt } = require("./persistence");
 const { detectNoProgress } = require("./progress-detect");
 const { savePromptSnapshot } = require("./prompt-snapshot");
+const { retrieveForTask, retrievedIds, hasRetrievedContent } = require("./retrieve");
 
 /**
  * Run a single attempt: prompt → extract → execute → normalize → evaluate.
@@ -104,20 +105,41 @@ async function runSingleAttempt(api, prompt, task, attemptNum) {
  * @param {object} api        — connected api-ape client
  * @param {object} task       — task payload
  * @param {string} episodeDir — absolute path to the episode folder
- * @returns {Promise<{ history: object[], stopReason: string }>}
+ * @returns {Promise<{ history: object[], stopReason: string, retrievedLearning: object|null }>}
  */
 async function runAttemptLoop(api, task, episodeDir) {
     await ensureDirectory(episodeDir);
     const history = [];
 
+    // Retrieve relevant learning artifacts once per episode.
+    // The task doesn't change between attempts, so retrieval
+    // results are reused across all attempts in the loop.
+    let retrievedLearning = null;
+    try {
+        retrievedLearning = await retrieveForTask(task);
+        if (hasRetrievedContent(retrievedLearning)) {
+            const ids = retrievedIds(retrievedLearning);
+            console.log(`  [learning] Retrieved ${ids.length} prior artifact(s)`);
+        }
+    } catch (err) {
+        // Retrieval failure is non-fatal — proceed without prior learning.
+        console.warn(`  [learning] Retrieval failed (proceeding without): ${err.message}`);
+    }
+
+    // Track which artifact IDs were retrieved so each attempt
+    // can record them in its metadata for reuse visibility.
+    const retrievedArtifactIds = retrievedLearning
+        ? retrievedIds(retrievedLearning)
+        : [];
+
     for (let attemptNum = 1; attemptNum <= CONFIG.maxAttempts; attemptNum++) {
         // Build the prompt — base for attempt 1, revision for 2+.
         let prompt;
         if (attemptNum === 1) {
-            prompt = buildApprenticePrompt(task);
+            prompt = buildApprenticePrompt(task, retrievedLearning);
         } else {
             const prior = history[history.length - 1];
-            prompt = buildRevisionPrompt(task, prior, attemptNum);
+            prompt = buildRevisionPrompt(task, prior, attemptNum, retrievedLearning);
         }
 
         // Persist the compiled prompt for debugging and replay.
@@ -132,30 +154,31 @@ async function runAttemptLoop(api, task, episodeDir) {
         } catch (err) {
             // Unrecoverable error — log and stop the loop.
             console.error(`  [attempt ${attemptNum}] Runner error: ${err.message}`);
-            return { history, stopReason: "runner_error" };
+            return { history, stopReason: "runner_error", retrievedLearning };
         }
 
         // Persist this attempt's artifacts to the episode directory.
-        await saveAttempt(episodeDir, attemptNum, result);
+        // Include the list of retrieved artifact IDs for reuse visibility.
+        await saveAttempt(episodeDir, attemptNum, result, retrievedArtifactIds);
         history.push(result);
 
         // Check stop condition 1: pass threshold.
         if (result.score >= CONFIG.passThreshold) {
             console.log(`  [loop] Pass threshold reached (${result.score} >= ${CONFIG.passThreshold})`);
-            return { history, stopReason: "pass_threshold" };
+            return { history, stopReason: "pass_threshold", retrievedLearning };
         }
 
         // Check stop condition 2: no-progress detection.
         const progress = detectNoProgress(history);
         if (progress.stalled) {
             console.log(`  [loop] No progress detected: ${progress.reason}`);
-            return { history, stopReason: "no_progress" };
+            return { history, stopReason: "no_progress", retrievedLearning };
         }
     }
 
     // Stop condition 3: max attempts exhausted.
     console.log(`  [loop] Max attempts (${CONFIG.maxAttempts}) reached`);
-    return { history, stopReason: "max_attempts" };
+    return { history, stopReason: "max_attempts", retrievedLearning };
 }
 
 module.exports = { runAttemptLoop, runSingleAttempt };

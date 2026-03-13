@@ -71,6 +71,16 @@ const CONFIG = {
     // Triggers when scripts, screen output, or scores are identical.
     noProgressCutoff: 3,
 
+    // Maximum number of retrieved learning artifacts per type.
+    // Controls how many prior artifacts are loaded for prompt inclusion.
+    // Higher values provide more context but risk prompt bloat.
+    retrieval: {
+        maxSkills: 3,
+        maxMemories: 5,
+        maxExemplars: 2,
+        maxAntiPatterns: 3,
+    },
+
     // Filesystem paths relative to the project root.
     // All learning subdirectories live under learning/ so they can
     // be gitignored together while preserving internal structure.

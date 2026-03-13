@@ -48,8 +48,9 @@ function attemptBase(attemptNum) {
  * @param {string} artifacts.stdout          — stdout (kept for compat)
  * @param {string} artifacts.stderr          — captured stderr
  * @param {object} artifacts.evaluatorResult — parsed evaluator response
+ * @param {string[]} [retrievedArtifactIds]  — IDs of retrieved learning artifacts
  */
-async function saveAttempt(episodeDir, attemptNum, artifacts) {
+async function saveAttempt(episodeDir, attemptNum, artifacts, retrievedArtifactIds) {
     await ensureDirectory(episodeDir);
     const base = attemptBase(attemptNum);
 
@@ -86,6 +87,15 @@ async function saveAttempt(episodeDir, attemptNum, artifacts) {
         path.join(episodeDir, `${base}-evaluator.json`),
         JSON.stringify(artifacts.evaluatorResult, null, 2)
     );
+
+    // Save retrieved artifact IDs for reuse visibility.
+    // Records which learning artifacts were consulted during this attempt.
+    if (retrievedArtifactIds && retrievedArtifactIds.length > 0) {
+        await writeText(
+            path.join(episodeDir, `${base}-retrieved.json`),
+            JSON.stringify({ retrievedArtifactIds }, null, 2)
+        );
+    }
 }
 
 /**
