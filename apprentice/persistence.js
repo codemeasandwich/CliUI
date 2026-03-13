@@ -1,19 +1,18 @@
 /**
- * apprentice/persistence.js — Episode Persistence
+ * apprentice/persistence.js — Per-Attempt Artifact Persistence
  *
- * Saves all episode artifacts into a structured folder under
- * learning/episodes/<episodeId>/. Each episode contains per-attempt
- * artifacts (script, raw ANSI, normalized screen, stderr, evaluator
- * verdict) and a single episode metadata file.
+ * Saves all artifacts for a single attempt into a structured folder
+ * under learning/episodes/<episodeId>/. Each attempt gets its own
+ * prefixed set of files for inspection and debugging.
  *
- * Phase 2 naming convention uses attempt-prefixed filenames to
- * support multi-attempt episodes in later phases:
+ * Naming convention (zero-padded for natural sort):
  *   attempt_001.js          — generated script
  *   attempt_001-raw.ansi    — raw PTY stream
  *   attempt_001-screen.txt  — normalized final-frame text
  *   attempt_001-stderr.txt  — captured stderr
  *   attempt_001-evaluator.json — evaluator verdict
- *   episode-meta.json       — episode metadata
+ *
+ * Episode-level summary is handled by episode-summary.js.
  *
  * @module apprentice/persistence
  */
@@ -34,31 +33,29 @@ function attemptBase(attemptNum) {
 }
 
 /**
- * Save all artifacts for a completed episode to disk.
+ * Save all artifacts for a single attempt to the episode directory.
  *
- * Creates the episode directory and writes the full artifact set.
- * Each artifact is named with the attempt prefix for multi-attempt
- * support in later phases.
+ * Each artifact is named with the attempt prefix so multiple
+ * attempts coexist in the same directory without conflicts.
+ * Files are written sequentially to avoid partial-write races.
  *
- * @param {string} episodeDir — absolute path to the episode folder
- * @param {object} artifacts  — all episode data to persist
+ * @param {string} episodeDir  — absolute path to the episode folder
+ * @param {number} attemptNum  — 1-based attempt number
+ * @param {object} artifacts   — attempt data to persist
  * @param {string} artifacts.script          — generated JS source
  * @param {string} artifacts.rawAnsi         — raw PTY ANSI stream
  * @param {string} artifacts.screenText      — normalized screen text
  * @param {string} artifacts.stdout          — stdout (kept for compat)
  * @param {string} artifacts.stderr          — captured stderr
  * @param {object} artifacts.evaluatorResult — parsed evaluator response
- * @param {object} artifacts.metadata        — episode metadata
- * @param {number} [artifacts.attemptNum=1]  — which attempt (default 1)
  */
-async function saveEpisode(episodeDir, artifacts) {
+async function saveAttempt(episodeDir, attemptNum, artifacts) {
     await ensureDirectory(episodeDir);
-    const num = artifacts.attemptNum || 1;
-    const base = attemptBase(num);
+    const base = attemptBase(attemptNum);
 
     // Save generated script for re-run or inspection.
     await writeText(
-        path.join(episodeDir, attemptFilename(num)),
+        path.join(episodeDir, attemptFilename(attemptNum)),
         artifacts.script
     );
 
@@ -81,7 +78,7 @@ async function saveEpisode(episodeDir, artifacts) {
     // Save captured stderr — useful for diagnosing runtime errors.
     await writeText(
         path.join(episodeDir, `${base}-stderr.txt`),
-        artifacts.stderr
+        artifacts.stderr || ""
     );
 
     // Save the evaluator's structured verdict as formatted JSON.
@@ -89,12 +86,27 @@ async function saveEpisode(episodeDir, artifacts) {
         path.join(episodeDir, `${base}-evaluator.json`),
         JSON.stringify(artifacts.evaluatorResult, null, 2)
     );
-
-    // Save episode metadata for provenance and later analysis.
-    await writeText(
-        path.join(episodeDir, "episode-meta.json"),
-        JSON.stringify(artifacts.metadata, null, 2)
-    );
 }
 
-module.exports = { saveEpisode };
+/**
+ * Legacy saveEpisode wrapper for backward compatibility with Phase 2.
+ * Delegates to saveAttempt for the single-attempt case plus writes
+ * episode metadata. Used only by existing Phase 2 tests.
+ *
+ * @param {string} episodeDir — absolute path to the episode folder
+ * @param {object} artifacts  — all episode data (Phase 2 shape)
+ */
+async function saveEpisode(episodeDir, artifacts) {
+    const num = artifacts.attemptNum || 1;
+    await saveAttempt(episodeDir, num, artifacts);
+
+    // Phase 2 compatibility: write episode-meta.json if provided.
+    if (artifacts.metadata) {
+        await writeText(
+            path.join(episodeDir, "episode-meta.json"),
+            JSON.stringify(artifacts.metadata, null, 2)
+        );
+    }
+}
+
+module.exports = { saveAttempt, saveEpisode };

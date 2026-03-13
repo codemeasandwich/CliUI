@@ -1,20 +1,17 @@
 #!/usr/bin/env bun
 
 /**
- * apprentice.js — Phase 2: PTY Runner and Normalized Output Capture
+ * apprentice.js — Phase 3: Multi-Attempt Refinement Loop
  *
- * Entry point for the trainer. Runs one complete episode:
+ * Entry point for the trainer. Runs one complete episode with
+ * iterative refinement:
  *   1. Connect to LLM Gateway via api-ape
- *   2. Send task to Apprentice actor → receive JS code
- *   3. Extract script, save to temp/, execute via PTY
- *   4. Capture real terminal output (raw ANSI + stderr)
- *   5. Normalize the ANSI stream into a final-frame screen text
- *   6. Send task + normalized screen to Evaluator actor
- *   7. Receive structured score and critique
- *   8. Persist episode with expanded artifact set
+ *   2. Run the multi-attempt loop (generate → execute → evaluate → revise)
+ *   3. Stop when pass threshold, max attempts, no-progress, or error
+ *   4. Save per-attempt artifacts and episode summary
  *
- * Primary invariant: The Evaluator judges the normalized terminal
- * screen text, never anything the Apprentice claims about its output.
+ * Primary invariant: Each revision attempt is based on real output
+ * and evaluator feedback from the previous attempt — never invented.
  *
  * Runtime: Bun (JavaScript)
  * LLM access: local LLM Gateway via api-ape WebSocket RPC
@@ -23,17 +20,13 @@
 const path = require("path");
 
 const CONFIG = require("./apprentice/config");
-const { ensureDirectory, writeText, episodeId } = require("./apprentice/filesystem");
-const { connectGateway, askApprentice, askEvaluator } = require("./apprentice/gateway");
-const { buildApprenticePrompt, buildEvaluatorPrompt } = require("./apprentice/prompts");
-const { extractScript, runScript } = require("./apprentice/runner");
-const { normalizeScreen } = require("./apprentice/screen-normalize");
-const { evaluate } = require("./apprentice/evaluator");
-const { saveEpisode } = require("./apprentice/persistence");
-const { attemptFilename } = require("./apprentice/filesystem");
+const { episodeId } = require("./apprentice/filesystem");
+const { connectGateway } = require("./apprentice/gateway");
+const { runAttemptLoop } = require("./apprentice/attempt-loop");
+const { buildSummary, saveEpisodeSummary } = require("./apprentice/episode-summary");
 
 /**
- * Hardcoded task for Phase 2.
+ * Hardcoded task for Phase 3.
  *
  * Defines the work the Apprentice must accomplish. Shape matches
  * the task payload expected by the prompt builders:
@@ -52,26 +45,24 @@ const TASK = {
 };
 
 /**
- * Run one complete episode of the truth loop.
+ * Run one complete episode of the multi-attempt refinement loop.
  *
- * Pipeline: connect → apprentice → extract → run → normalize → evaluate → persist.
- * Each step logs progress for traceability.
+ * Pipeline: connect → attempt loop → summary → close.
+ * Each attempt within the loop persists its own artifacts. The
+ * episode summary is written after all attempts complete.
  *
  * @param {object} task — task payload { request, wireframe?, cols?, rows? }
- * @returns {Promise<{episodeDir: string, evaluatorResult: object}>}
+ * @returns {Promise<{episodeDir: string, summary: object}>}
  */
 async function runEpisode(task) {
     const id = episodeId();
     const episodeDir = path.join(CONFIG.paths.episodes, id);
-    const scriptFilename = attemptFilename(1);
-    const scriptPath = path.join(CONFIG.paths.temp, scriptFilename);
-
-    // Terminal dimensions for normalization — use task overrides or config defaults.
-    const cols = task.cols || CONFIG.terminal.cols;
-    const rows = task.rows || CONFIG.terminal.rows;
 
     console.log(`\n${"=".repeat(60)}`);
     console.log(`  Episode: ${id}`);
+    console.log(`  Max attempts: ${CONFIG.maxAttempts}`);
+    console.log(`  Pass threshold: ${CONFIG.passThreshold}/10`);
+    console.log(`  No-progress cutoff: ${CONFIG.noProgressCutoff}`);
     console.log(`${"=".repeat(60)}\n`);
 
     // Step 1 — Connect to the LLM Gateway.
@@ -79,104 +70,28 @@ async function runEpisode(task) {
     await connectGateway(api);
 
     try {
-        // Step 2 — Ask the Apprentice to generate code for the task.
-        console.log("[step 2] Requesting code from Apprentice…");
-        const apprenticePrompt = buildApprenticePrompt(task);
-        const apprenticeResponse = await askApprentice(api, apprenticePrompt);
-        console.log(
-            `[step 2] Received ${apprenticeResponse.length} chars from Apprentice`
+        // Step 2 — Run the multi-attempt refinement loop.
+        // The loop handles: prompt building, script execution,
+        // normalization, evaluation, revision, and per-attempt saves.
+        const { history, stopReason } = await runAttemptLoop(
+            api, task, episodeDir
         );
 
-        // Step 3 — Extract runnable JavaScript from the response.
-        console.log("[step 3] Extracting script…");
-        const script = extractScript(apprenticeResponse);
+        // Step 3 — Build and save the episode summary.
+        const summary = buildSummary(id, task, history, stopReason);
+        await saveEpisodeSummary(episodeDir, summary);
 
-        // Step 4 — Save the script to temp/ for execution.
-        console.log(`[step 4] Saving script to ${scriptPath}`);
-        await ensureDirectory(CONFIG.paths.temp);
-        await writeText(scriptPath, script);
-
-        // Step 5 — Execute the script and capture all terminal output.
-        // The PTY runner allocates a real pseudoterminal with controlled
-        // dimensions, producing ANSI output matching what users see.
-        console.log("[step 5] Running script…");
-        const runResult = await runScript(scriptPath, CONFIG.timeoutMs);
-        console.log(
-            `[step 5] Script exited with code ${runResult.exitCode}` +
-            (runResult.timedOut ? " (TIMED OUT)" : "") +
-            ` (${runResult.durationMs}ms)`
-        );
-        if (runResult.rawAnsi && runResult.rawAnsi.length > 0) {
-            console.log(`[step 5] rawAnsi: ${runResult.rawAnsi.length} chars`);
-        }
-        if (runResult.stdout.length > 0) {
-            console.log(`[step 5] stdout: ${runResult.stdout.length} chars`);
-        }
-        if (runResult.stderr.length > 0) {
-            console.log(`[step 5] stderr: ${runResult.stderr.length} chars`);
-        }
-
-        // Step 5b — Normalize the raw ANSI output into a final-frame
-        // screen text. This is the "what would the user see" snapshot
-        // that the Evaluator will judge against the task request.
-        console.log("[step 5b] Normalizing terminal output…");
-        const rawForNormalize = runResult.rawAnsi || runResult.stdout || "";
-        const screenText = normalizeScreen(rawForNormalize, cols, rows);
-        console.log(`[step 5b] Screen text: ${screenText.length} chars`);
-
-        // Attach the normalized screen text to the run result so the
-        // evaluator prompt builder can access it directly.
-        runResult.screenText = screenText;
-
-        // Step 6+7 — Send ONLY the task + normalized screen to the Evaluator.
-        // The generated script and raw ANSI are deliberately excluded.
-        console.log("[step 6] Evaluating normalized screen output…");
-        const evaluatorPrompt = buildEvaluatorPrompt(task, runResult);
-        const evaluatorResult = await evaluate(api, evaluatorPrompt);
-        console.log(
-            `[step 7] Evaluator verdict: ${evaluatorResult.verdict} ` +
-            `(score: ${evaluatorResult.score}/10)`
-        );
-
-        // Step 8 — Persist the full episode with expanded artifacts.
-        const metadata = {
-            episodeId: id,
-            timestamp: new Date().toISOString(),
-            task,
-            exitCode: runResult.exitCode,
-            timedOut: runResult.timedOut,
-            durationMs: runResult.durationMs,
-            score: evaluatorResult.score,
-            verdict: evaluatorResult.verdict,
-            apprenticeProvider: CONFIG.apprenticeProvider,
-            evaluatorProvider: CONFIG.evaluatorProvider,
-            timeoutMs: CONFIG.timeoutMs,
-            // Phase 2: terminal environment overrides in metadata
-            // for reproducibility analysis.
-            terminalEnv: CONFIG.terminal.env,
-            terminalDimensions: { cols, rows },
-            ptyBacked: !!(runResult.rawAnsi && runResult.rawAnsi.length > 0),
-        };
-
-        console.log(`[step 8] Saving episode to ${episodeDir}`);
-        await saveEpisode(episodeDir, {
-            script,
-            rawAnsi: runResult.rawAnsi || "",
-            screenText,
-            stdout: runResult.stdout,
-            stderr: runResult.stderr,
-            evaluatorResult,
-            metadata,
-        });
-
+        // Step 4 — Print the final episode report.
         console.log(`\n${"=".repeat(60)}`);
-        console.log(`  Episode complete: ${evaluatorResult.verdict}`);
-        console.log(`  Score: ${evaluatorResult.score}/10`);
-        console.log(`  Critique: ${evaluatorResult.critique}`);
+        console.log(`  Episode complete: ${summary.finalVerdict}`);
+        console.log(`  Attempts: ${summary.totalAttempts}`);
+        console.log(`  Scores: [${summary.scores.join(", ")}]`);
+        console.log(`  Final score: ${summary.finalScore}/10`);
+        console.log(`  Stop reason: ${summary.stopReason}`);
         console.log(`  Artifacts: ${episodeDir}`);
         console.log(`${"=".repeat(60)}\n`);
 
-        return { episodeDir, evaluatorResult };
+        return { episodeDir, summary };
     } finally {
         // Close the WebSocket connection to prevent resource leak.
         // api-ape.close() gracefully terminates the connection.
@@ -192,16 +107,16 @@ async function runEpisode(task) {
  */
 async function main() {
     try {
-        console.log("Apprentice Phase 2 — PTY Runner and Normalized Output Capture");
+        console.log("Apprentice Phase 3 — Multi-Attempt Refinement Loop");
         console.log(`Gateway: ws://${CONFIG.gateway.host}:${CONFIG.gateway.port}`);
         console.log(`Apprentice provider: ${CONFIG.apprenticeProvider}`);
         console.log(`Evaluator provider: ${CONFIG.evaluatorProvider}`);
         console.log(`Timeout: ${CONFIG.timeoutMs}ms`);
         console.log(`Terminal: ${CONFIG.terminal.cols}x${CONFIG.terminal.rows}`);
-        console.log(`TERM=${CONFIG.terminal.env.TERM} LANG=${CONFIG.terminal.env.LANG}`);
 
-        const { episodeDir } = await runEpisode(TASK);
-        console.log("\n✓ Phase 2 complete. Episode saved to:", episodeDir);
+        const { episodeDir, summary } = await runEpisode(TASK);
+        console.log("✓ Phase 3 complete. Episode saved to:", episodeDir);
+        console.log(`  Result: ${summary.finalVerdict} after ${summary.totalAttempts} attempt(s)`);
     } catch (err) {
         console.error("\n✗ Episode failed:", err.message);
         console.error(err.stack);

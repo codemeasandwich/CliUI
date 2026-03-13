@@ -59,8 +59,17 @@ const CONFIG = {
     // Prevents runaway processes from blocking the trainer indefinitely.
     timeoutMs: 30_000,
 
-    // Fixed to 1 for Phase 1 — later phases will add retry loops.
-    maxAttempts: 1,
+    // Maximum attempts per episode before the loop gives up.
+    // The loop may stop earlier if it detects no progress.
+    maxAttempts: 10,
+
+    // Evaluator score threshold for a passing verdict.
+    // Score >= passThreshold stops the loop with "pass_threshold".
+    passThreshold: 7,
+
+    // Number of consecutive no-progress attempts before the loop stops.
+    // Triggers when scripts, screen output, or scores are identical.
+    noProgressCutoff: 3,
 
     // Filesystem paths relative to the project root.
     paths: {
