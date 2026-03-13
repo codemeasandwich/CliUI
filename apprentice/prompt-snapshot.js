@@ -33,6 +33,15 @@ function promptFilename(attemptNum) {
  * can be inspected alongside the generated script, screen capture,
  * and evaluator result for the same attempt.
  *
+ * Written paths:
+ *   - <episodeDir>/attempt_NNN-prompt.md — full compiled prompt text as markdown
+ *
+ * Assumptions:
+ *   - episodeDir already exists (created by the episode loop before this call)
+ *   - promptText is a non-empty string (not validated)
+ *
+ * Failure behavior: Bubbles up writeText errors if unable to write.
+ *
  * @param {string} episodeDir  — absolute path to the episode folder
  * @param {number} attemptNum  — 1-based attempt number
  * @param {string} promptText  — the full compiled prompt sent to the LLM

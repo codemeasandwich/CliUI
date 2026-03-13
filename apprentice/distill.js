@@ -51,8 +51,10 @@ function extractTags(text) {
  * Trigger: any attempt with a critique containing actionable content
  * (more than 20 characters, indicating substantive feedback).
  *
- * Confidence scales with the score delta between the first and last
- * attempt — larger improvement signals more reliable observations.
+ * Confidence: 0.4 base + up to 0.3 scaled by the individual attempt's
+ * distance from a perfect score (lower scores → higher confidence,
+ * because severe failures produce more diagnostic critiques).
+ * Formula: min(0.7, 0.4 + (1 - score/10) * 0.3). Capped at 0.7.
  *
  * @param {object}   task    — { request, wireframe?, cols?, rows? }
  * @param {object[]} history — array of attempt result objects
