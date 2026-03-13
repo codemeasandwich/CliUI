@@ -27,6 +27,8 @@ const { saveAttempt } = require("./persistence");
 const { detectNoProgress } = require("./progress-detect");
 const { savePromptSnapshot } = require("./prompt-snapshot");
 const { retrieveForTask, retrievedIds, hasRetrievedContent } = require("./retrieve");
+const { runDeterministicChecks } = require("./deterministic");
+const { calculateHybridScore } = require("./hybrid-scorer");
 
 /**
  * Run a single attempt: prompt → extract → execute → normalize → evaluate.
@@ -73,9 +75,14 @@ async function runSingleAttempt(api, prompt, task, attemptNum) {
     const evalPrompt = buildEvaluatorPrompt(task, runResult);
     const evaluatorResult = await evaluate(api, evalPrompt);
 
+    // Phase 6: Deterministic Checks and Hybrid Scoring
+    const detResult = runDeterministicChecks(task, runResult);
+    const hybridResult = calculateHybridScore(evaluatorResult, detResult);
+
     console.log(
-        `  [attempt ${attemptNum}] Score: ${evaluatorResult.score}/10` +
-        ` — ${evaluatorResult.verdict}`
+        `  [attempt ${attemptNum}] Score: ${hybridResult.score}/10` +
+        ` — ${hybridResult.verdict} ` +
+        `(${detResult.passedChecks.length} checks passed, ${detResult.failedChecks.length} failed)`
     );
 
     // Return the complete attempt result with all artifacts.
@@ -89,9 +96,9 @@ async function runSingleAttempt(api, prompt, task, attemptNum) {
         exitCode: runResult.exitCode,
         timedOut: runResult.timedOut,
         durationMs: runResult.durationMs,
-        score: evaluatorResult.score,
-        verdict: evaluatorResult.verdict,
-        evaluatorResult,
+        score: hybridResult.score,
+        verdict: hybridResult.verdict,
+        evaluatorResult: hybridResult,
     };
 }
 

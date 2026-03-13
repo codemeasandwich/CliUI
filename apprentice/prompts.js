@@ -208,6 +208,7 @@ ${runResult.stderr || "(empty)"}
 ## Instructions
 
 Judge the captured output above against the original task requirements.
+Focus on: structure, borders, title placement, spacing and alignment, faithfulness to the request, and visible completeness.
 Do NOT speculate about the code that produced this output.
 Base your judgment solely on what the output shows.
 

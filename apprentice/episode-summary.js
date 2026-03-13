@@ -54,6 +54,10 @@ function buildSummary(episodeId, task, history, stopReason) {
         durationMs: a.durationMs,
         exitCode: a.exitCode,
         timedOut: a.timedOut,
+        evaluatorScore: a.evaluatorResult ? a.evaluatorResult.evaluatorScore : a.score,
+        deterministicPenalty: a.evaluatorResult ? a.evaluatorResult.deterministicPenalty : 0,
+        passedChecks: a.evaluatorResult ? a.evaluatorResult.passedChecks : [],
+        failedChecks: a.evaluatorResult ? a.evaluatorResult.failedChecks : []
     }));
 
     return {
