@@ -60,7 +60,12 @@ async function copyArtifacts(entries, targetDir) {
             // Rewrite path in the entry to be relative to the bundle
             entry.path = `./${fileName}`;
         } catch (err) {
-            console.warn(`Failed to copy artifact ${entry.path}: ${err.message}`);
+            console.warn(
+                `Failed to copy export artifact '${entry.path}' to '${targetDir}'. ` +
+                `Read or write operation failed: ${err.message}. ` +
+                `Ensure the source file exists and destination directory is writable. ` +
+                `Skipping this artifact in the export bundle.`
+            );
         }
     }
 }
@@ -85,7 +90,15 @@ async function copyArtifacts(entries, targetDir) {
  */
 async function exportLearning(outDir) {
     const bundleDir = outDir || path.join("learning", "exports", `export_${timestamp()}`);
-    await ensureDirectory(bundleDir);
+    try {
+        await ensureDirectory(bundleDir);
+    } catch (err) {
+        throw new Error(
+            `Failed to initialize export bundle directory at '${bundleDir}'. ` +
+            `Filesystem rejected directory creation: ${err.message}. ` +
+            `Check permissions for the export destination folder.`
+        );
+    }
     console.log(`\nExporting portable learning bundle to: ${bundleDir}`);
 
     // 1. Load indices
@@ -121,7 +134,13 @@ async function exportLearning(outDir) {
             );
         }
     } catch(err) {
-        // ok if empty
+        if (err.code !== "ENOENT") {
+            throw new Error(
+                `Failed to copy summaries into bundle. ` +
+                `Read/write from '${CONFIG.paths.summaries}' to '${bundleSummariesDir}' failed: ${err.message}. ` +
+                `Ensure source and destination are readable/writable.`
+            );
+        }
     }
 
     const bundlePromptsDir = path.join(bundleDir, "prompts");
@@ -135,7 +154,13 @@ async function exportLearning(outDir) {
             );
         }
     } catch(err) {
-        // ok if empty
+        if (err.code !== "ENOENT") {
+            throw new Error(
+                `Failed to copy prompts into bundle. ` +
+                `Read/write from '${CONFIG.paths.prompts}' to '${bundlePromptsDir}' failed: ${err.message}. ` +
+                `Ensure source and destination are readable/writable.`
+            );
+        }
     }
 
     // 5. Write a master bundle index
@@ -147,11 +172,19 @@ async function exportLearning(outDir) {
             exemplars: selectedExemplars
         }
     };
-    await fs.promises.writeFile(
-        path.join(bundleDir, "bundle-manifest.json"),
-        JSON.stringify(bundleManifest, null, 2),
-        "utf-8"
-    );
+    try {
+        await fs.promises.writeFile(
+            path.join(bundleDir, "bundle-manifest.json"),
+            JSON.stringify(bundleManifest, null, 2),
+            "utf-8"
+        );
+    } catch (err) {
+        throw new Error(
+            `Failed to write export bundle manifest. ` +
+            `Filesystem write to '${path.join(bundleDir, "bundle-manifest.json")}' failed: ${err.message}. ` +
+            `Check destination filesystem space and permissions.`
+        );
+    }
 
     console.log(`- Included ${selectedSkills.length} skills`);
     console.log(`- Included ${selectedMemories.length} memories`);

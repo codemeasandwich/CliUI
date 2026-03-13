@@ -377,7 +377,7 @@ test("readIndex returns empty array for non-existent index", async () => {
 test("indexPath throws for unknown type", () => {
     assert.throws(
         () => indexPath("bogus"),
-        /unknown artifact type/,
+        /Pass one of the registered valid types/,
         "should throw for unrecognized type"
     );
 });

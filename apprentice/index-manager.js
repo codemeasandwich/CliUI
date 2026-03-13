@@ -34,6 +34,15 @@ const INDEX_FILES = {
 /**
  * Resolve the absolute path for an index file by artifact type.
  *
+ * Domain: Translates abstract learning subsystem entities (e.g. "skill") into
+ * their physical persistence boundaries.
+ * Technical: Looks up the plural JSON filename using a static mapping and joins
+ * it with the configured index directory path.
+ * Intent & Trade-offs: Hardcoding the mapping (INDEX_FILES) avoids filesystem 
+ * sniffing and ensures no unexpected file types are accessed, optimizing security
+ * and determinism.
+ * Assumptions/Edge Cases: Expects a valid key from INDEX_FILES. Throws otherwise.
+ *
  * @param {string} type — artifact type (memory, skill, exemplar, anti-pattern)
  * @returns {string} absolute path to the index JSON file
  * @throws {Error} if type is not recognized
@@ -42,9 +51,9 @@ function indexPath(type) {
     const filename = INDEX_FILES[type];
     if (!filename) {
         throw new Error(
-            `indexPath: unknown artifact type '${type}'. ` +
-            `Valid types: ${Object.keys(INDEX_FILES).join(", ")}. ` +
-            `Check the caller is passing a valid type string.`
+            `Failed to resolve index path for type '${type}'. ` +
+            `The requested artifact type is not registered in index mapping. ` +
+            `Pass one of the registered valid types: ${Object.keys(INDEX_FILES).join(", ")}.`
         );
     }
     return path.join(CONFIG.paths.indexes, filename);
@@ -53,6 +62,13 @@ function indexPath(type) {
 /**
  * Read and parse an index file. Returns an empty array if the
  * file does not exist yet (first write bootstraps the file).
+ *
+ * Domain: The primary read interface for fetching learning components into memory.
+ * Technical: Reads the file at `indexPath(type)` as UTF-8 and parses it as JSON.
+ * Intent & Trade-offs: Performs a synchronous-style complete file parse instead
+ * of stream-parsing. Appropriate for small local indexes (hundreds of items).
+ * Assumptions/Edge Cases: If the file is missing (ENOENT), returns an empty 
+ * array instead of failing, allowing initial bootstrapping of the system.
  *
  * @param {string} type — artifact type
  * @returns {Promise<object[]>} array of index entries
@@ -69,8 +85,9 @@ async function readIndex(type) {
             return [];
         }
         throw new Error(
-            `readIndex failed for type '${type}' at '${filePath}': ${err.message}. ` +
-            `The index file may be corrupted or unreadable.`
+            `Failed to read index for type '${type}' at '${filePath}'. ` +
+            `Underlying fs operation failed: ${err.message}. ` +
+            `Verify the index file is not corrupted, is valid JSON, and has read permissions.`
         );
     }
 }
@@ -162,8 +179,9 @@ async function rebuildIndex(type) {
     const dir = dirMap[type];
     if (!dir) {
         throw new Error(
-            `rebuildIndex: unknown artifact type '${type}'. ` +
-            `Valid types: ${Object.keys(dirMap).join(", ")}.`
+            `Failed to rebuild index for artifact type '${type}'. ` +
+            `The requested type does not have a mapped artifact directory. ` +
+            `Ensure the caller uses a valid type: ${Object.keys(dirMap).join(", ")}.`
         );
     }
 
@@ -175,7 +193,11 @@ async function rebuildIndex(type) {
         if (err.code === "ENOENT") {
             return [];
         }
-        throw err;
+        throw new Error(
+            `Failed to rebuild index for artifact type '${type}'. ` +
+            `The directory underlying the index could not be read ('${dir}'): ${err.message}. ` +
+            `Ensure the directory has valid read permissions for the Node process.`
+        );
     }
     const mdFiles = files.filter((f) => f.endsWith(".md"));
 
@@ -183,20 +205,28 @@ async function rebuildIndex(type) {
     const entries = [];
     for (const filename of mdFiles) {
         const filePath = path.join(dir, filename);
-        const content = await fs.promises.readFile(filePath, "utf-8");
-        const meta = parseFrontMatter(content);
-        if (meta.id) {
-            entries.push({
-                id:                 meta.id,
-                type:               meta.type || type,
-                title:              meta.title || filename,
-                tags:               meta.tags || [],
-                path:               filePath,
-                createdAt:          meta.createdAt || null,
-                confidence:         meta.confidence != null ? meta.confidence : null,
-                supportingEvidence: meta.supportingEvidence || [],
-                relatedArtifacts:   meta.relatedArtifacts || []
-            });
+        try {
+            const content = await fs.promises.readFile(filePath, "utf-8");
+            const meta = parseFrontMatter(content);
+            if (meta.id) {
+                entries.push({
+                    id:                 meta.id,
+                    type:               meta.type || type,
+                    title:              meta.title || filename,
+                    tags:               meta.tags || [],
+                    path:               filePath,
+                    createdAt:          meta.createdAt || null,
+                    confidence:         meta.confidence != null ? meta.confidence : null,
+                    supportingEvidence: meta.supportingEvidence || [],
+                    relatedArtifacts:   meta.relatedArtifacts || []
+                });
+            }
+        } catch (err) {
+            console.warn(
+                `Failed to parse artifact during index rebuild. ` +
+                `File '${filePath}' read or parse failed: ${err.message}. ` +
+                `Ensure the markdown file is readable and contains valid YAML front-matter.`
+            );
         }
     }
 

@@ -58,7 +58,15 @@ function groupByTags(artifacts) {
  * @returns {Promise<void>}
  */
 async function generateSummaries() {
-    await ensureDirectory(CONFIG.paths.summaries);
+    try {
+        await ensureDirectory(CONFIG.paths.summaries);
+    } catch (err) {
+        throw new Error(
+            `Failed to generate summaries. ` +
+            `Could not create or access summary directory '${CONFIG.paths.summaries}': ${err.message}. ` +
+            `Ensure directory permissions allow creation and writing.`
+        );
+    }
     
     const skills = await readIndex("skill");
     const antiPatterns = await readIndex("anti-pattern");
@@ -84,7 +92,15 @@ async function generateSummaries() {
         }
     }
     
-    await writeText(path.join(CONFIG.paths.summaries, "common-mistakes.md"), mistakesBody.join("\n"));
+    try {
+        await writeText(path.join(CONFIG.paths.summaries, "common-mistakes.md"), mistakesBody.join("\n"));
+    } catch (err) {
+        throw new Error(
+            `Failed to write common-mistakes summary. ` +
+            `Underlying file write operation rejected: ${err.message}. ` +
+            `Check filesystem space and permissions in ${CONFIG.paths.summaries}.`
+        );
+    }
 
     // Summary 2: Reliable Techniques (from Skills)
     const techniquesBody = [
@@ -107,8 +123,16 @@ async function generateSummaries() {
         }
     }
     
-    await writeText(path.join(CONFIG.paths.summaries, "reliable-techniques.md"), techniquesBody.join("\n"));
-    console.log(`Generated summaries in ${CONFIG.paths.summaries}`);
+    try {
+        await writeText(path.join(CONFIG.paths.summaries, "reliable-techniques.md"), techniquesBody.join("\n"));
+        console.log(`Generated summaries in ${CONFIG.paths.summaries}`);
+    } catch (err) {
+        throw new Error(
+            `Failed to write reliable-techniques summary. ` +
+            `Underlying file write operation rejected: ${err.message}. ` +
+            `Check filesystem space and permissions in ${CONFIG.paths.summaries}.`
+        );
+    }
 }
 
 /**
@@ -127,7 +151,15 @@ async function generateSummaries() {
  * @returns {Promise<void>}
  */
 async function generatePromptPacks() {
-    await ensureDirectory(CONFIG.paths.prompts);
+    try {
+        await ensureDirectory(CONFIG.paths.prompts);
+    } catch (err) {
+        throw new Error(
+            `Failed to generate prompt packs. ` +
+            `Could not create or access prompts directory '${CONFIG.paths.prompts}': ${err.message}. ` +
+            `Ensure directory permissions allow creation and writing.`
+        );
+    }
     
     const memories = await readIndex("memory");
     const tagMap = groupByTags(memories);
@@ -160,7 +192,15 @@ async function generatePromptPacks() {
         }
         
         packBody.push(`---\n*Use this pack to augment standard prompts when the word '${tag}' appears in user requests.*`);
-        await writeText(path.join(CONFIG.paths.prompts, packName), packBody.join("\n"));
+        try {
+            await writeText(path.join(CONFIG.paths.prompts, packName), packBody.join("\n"));
+        } catch (err) {
+            throw new Error(
+                `Failed to write prompt pack for tag '${tag}'. ` +
+                `Underlying file write operation rejected: ${err.message}. ` +
+                `Check filesystem space and permissions in ${CONFIG.paths.prompts}.`
+            );
+        }
     }
     
     console.log(`Generated prompt packs in ${CONFIG.paths.prompts}`);
