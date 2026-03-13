@@ -1,11 +1,15 @@
 /**
- * apprentice/benchmark-runner.js — Benchmark Execution & Reporting
+ * apprentice/benchmark-runner.js
  *
- * Runs a suite of benchmark tasks, leveraging the normal episode
- * machinery, and produces both per-task regression reports and
- * an aggregate suite report.
- *
- * @module apprentice/benchmark-runner
+ * Purpose: Execute a suite of benchmark tasks and compile regression reports.
+ * Responsibilities: Runs the normal episode machinery (attempt loop) across an array of tasks and produces both per-task regression reports and an aggregate suite report.
+ * Major sections:
+ *   - runBenchmarkSuite: The primary orchestration function looping over tasks and writing JSON reports.
+ * Important invariants: Intentionally disables the distillation of new learning artifacts from benchmark runs themselves to prevent test-data contamination into the training set.
+ * Report generation behavior: Generates per-task JSON reports with scores, attempts, and utilized artifacts. Generates an aggregate JSON report with mean scores, median scores, pass rates, and common failure bottlenecks. Flushes reports to disk iteratively to prevent data loss.
+ * Replay behavior: Fully compatible with replayed tasks from `replay-runner.js`. Replay tasks are treated exactly like standard benchmarks, enabling measurement of progress against historically failed episodes without data contamination.
+ * Task loading assumptions: Assumes all tasks in the provided array have already been validated and contain complete schema metadata (`id`, `title`, `request`).
+ * Failure behavior: Gracefully handles mathematical zero-division edge cases for empty task suites. Disables distillation of new learning artifacts to prevent benchmark runs from polluting standard training sets.
  */
 
 const path = require("path");
@@ -16,31 +20,15 @@ const attemptLoop = require("./attempt-loop");
 const { buildSummary, saveEpisodeSummary } = require("./episode-summary");
 
 /**
- * Executes a suite of benchmark tasks and compiles regression reports.
- *
- * Domain: Orchestrates a multi-task benchmarking suite to measure 
- * performance and track regressions over time. It satisfies the need 
- * to prove whether accumulated learning genuinely improves success rates 
- * or if it leads to stagnation, providing concrete evidence of progress.
- *
- * Technical: Iterates over the provided tasks, running full 
- * attempts (via the attempt loop) for each one. Generates a per-task 
- * JSON report containing scores, attempt counts, and utilized artifacts, 
- * as well as a suite-wide aggregate JSON report indicating central tendencies 
- * (mean/median scores) and common failure bottlenecks.
- *
- * Intent & Trade-offs: Intentionally disables the distillation of new 
- * learning artifacts from benchmark runs themselves to prevent test-data 
- * contamination into the training set. Reports are flushed to disk 
- * iteratively to prevent memory/data loss in the event of an abrupt runner crash.
- *
- * Edge cases & Failure modes: Handles graceful degradation and zero-division 
- * checks if provided an empty task payload, bypassing mathematical errors.
- * 
- * @param {object} api               - connected api-ape client
- * @param {object[]} tasks           - array of standard task payloads
- * @param {boolean} disableRetrieval - whether to disable learning retrieval
- * @returns {Promise<object>} The aggregate report JSON object describing the entire suite's performance
+ * Purpose: Execute a suite of benchmark tasks and compile regression reports.
+ * Inputs:
+ *   - api: {object} connected api-ape client
+ *   - tasks: {object[]} array of standard task payloads
+ *   - disableRetrieval: {boolean} [default=false] whether to disable learning retrieval
+ * Outputs: {Promise<object>} The aggregate report JSON object describing the entire suite's performance.
+ * Side effects: Iterates over the provided tasks, running full attempts via the attempt loop. Saves per-task and aggregate report JSON files to disk.
+ * Failure behavior: Handles graceful degradation and zero-division checks if provided an empty task payload, bypassing mathematical errors.
+ * Important assumptions: Orchestrates a multi-task benchmarking suite to measure performance and track regressions over time. Satisfies the need to prove whether accumulated learning genuinely improves success rates or if it leads to stagnation, providing concrete evidence of progress.
  */
 async function runBenchmarkSuite(api, tasks, disableRetrieval = false) {
     console.log(`\n${"=".repeat(60)}`);

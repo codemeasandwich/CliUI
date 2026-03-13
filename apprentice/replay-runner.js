@@ -1,10 +1,15 @@
 /**
- * apprentice/replay-runner.js — Episode Replay Loader
+ * apprentice/replay-runner.js
  *
- * Extracts a task payload from a past episode's summary so it can
- * be re-run (e.g., replaying a previously failed attempt).
- *
- * @module apprentice/replay-runner
+ * Purpose: Extracts a task payload from a past episode's summary so it can be re-run.
+ * Responsibilities: Enables replaying a previously failed or completed attempt against the *current* learning state.
+ * Major sections:
+ *   - loadEpisodeTask: The primary loader function for historical tasks.
+ * Important invariants: Patches missing fields dynamically to ensure backward compatibility with pre-benchmark legacy summary formats.
+ * Report generation behavior: It enables downstream benchmark runners to generate new performance reports for old tasks, creating a direct before-and-after comparison of learning efficacy.
+ * Replay behavior: Replay is the core function of this module. It takes an old episode, extracts its constraints and request, and patches legacy missing fields (like `id` and `title`) to ensure compatibility with the modern benchmark pipeline.
+ * Task loading assumptions: Assumes the episode summary exists in `learning/episodes/<id>/episode-summary.json` and contains a `task` payload.
+ * Failure behavior: Throws strict 3-part diagnostic errors if the episode directory is deleted, the summary JSON is malformed, or if the `task` property is missing from unsupported legacy formats.
  */
 
 const fs = require("fs");
@@ -13,25 +18,13 @@ const CONFIG = require("./config");
 const { validateBenchmark } = require("./benchmark-loader");
 
 /**
- * Loads the original task payload from a previous episode's summary.
- * 
- * Domain: Enables the "replay" workflow requirement, allowing developers 
- * to take a task that previously failed (or succeeded partially) and run 
- * it again against the latest apprentice learning states. This is crucial 
- * for verifying whether new exemplars or skills actually resolve old failures.
- * 
- * Technical: Reads the JSON episode-summary from the given episode ID's 
- * directory. Extracts the 'task' payload. Patches legacy summaries that 
- * predated the benchmark ID format to ensure they satisfy the current 
- * validation schema, routing them seamlessly into the benchmark pipeline.
- * 
- * Edge cases & Failure modes: Throws strict 3-part diagnostic errors if 
- * the episode directory is deleted, the JSON is malformed, or the 'task' 
- * property is missing from older unsupported episode formats.
- * 
- * @param {string} episodeId - The ID of the past episode to replay
- * @returns {object} The extracted task object
- * @throws {Error} if the episode directory or summary is missing/invalid
+ * Purpose: Load the original task payload from a previous episode's summary.
+ * Inputs:
+ *   - episodeId: {string} The ID of the past episode to replay.
+ * Outputs: {object} The extracted and patched task object.
+ * Side effects: Reads the JSON episode-summary from the local filesystem.
+ * Failure behavior: Throws strict 3-part diagnostic logic errors if the episode directory is deleted, the summary JSON is malformed, or the 'task' property is missing from older unsupported episode formats.
+ * Important assumptions: Enables the "replay" workflow requirement, allowing developers to take a task that previously failed and run it again against the latest apprentice learning states. Patches legacy summaries that predated the benchmark ID format to ensure they satisfy the current validation schema.
  */
 function loadEpisodeTask(episodeId) {
     const summaryPath = path.join(CONFIG.paths.episodes, episodeId, "episode-summary.json");
