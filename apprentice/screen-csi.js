@@ -12,13 +12,17 @@
  */
 
 /**
- * Parse a CSI parameter string like "5" or "1;2" into an array
- * of integers. Missing/empty params default to the provided
- * defaultVal (usually 1 for movement commands, 0 for erase).
- *
- * @param {string} paramStr — raw parameter string from the CSI seq
- * @param {number} defaultVal — value for missing params
- * @returns {number[]} parsed parameters
+ * Purpose: Parse a CSI parameter string like "5" or "1;2" into an array
+ * of integers. Missing or empty params default to the provided defaultVal
+ * (usually 1 for movement commands, 0 for erase commands).
+ * Inputs:
+ *   - paramStr: {string} raw parameter string from the CSI sequence
+ *   - defaultVal: {number} fallback value for missing or NaN params
+ * Outputs: {number[]} parsed integer parameters
+ * Side effects: None — pure function.
+ * Runner/env interactions: None.
+ * Capture behavior: None — operates on already-captured data.
+ * Failure behavior: Returns [defaultVal] for empty/null input; NaN entries become defaultVal.
  */
 function parseParams(paramStr, defaultVal) {
     if (!paramStr || paramStr.length === 0) {
@@ -31,25 +35,34 @@ function parseParams(paramStr, defaultVal) {
 }
 
 /**
- * Clamp a value between min and max (inclusive).
- *
- * @param {number} val — value to clamp
- * @param {number} min — lower bound
- * @param {number} max — upper bound
- * @returns {number} clamped value
+ * Purpose: Clamp a value between min and max (inclusive).
+ * Inputs:
+ *   - val: {number} value to clamp
+ *   - min: {number} lower bound
+ *   - max: {number} upper bound
+ * Outputs: {number} clamped value
+ * Side effects: None — pure function.
+ * Runner/env interactions: None.
+ * Capture behavior: None.
+ * Failure behavior: None — always returns a valid number.
  */
 function clamp(val, min, max) {
     return Math.max(min, Math.min(max, val));
 }
 
 /**
- * Erase part or all of the display based on the erase mode.
+ * Purpose: Erase part or all of the display based on the erase mode.
  *   0 — from cursor to end of screen
  *   1 — from start of screen to cursor
  *   2 or 3 — entire screen
- *
- * @param {number} mode  — erase mode
- * @param {object} state — screen state
+ * Inputs:
+ *   - mode: {number} erase mode (0, 1, 2, or 3)
+ *   - state: {object} screen state { row, col, grid, rows, cols }
+ * Outputs: None (mutates state.grid in place).
+ * Side effects: Fills grid cells with spaces according to the erase mode.
+ * Runner/env interactions: None.
+ * Capture behavior: None — operates on the virtual screen buffer.
+ * Failure behavior: Unrecognized modes are silently ignored (no-op).
  */
 function eraseDisplay(mode, state) {
     if (mode === 2 || mode === 3) {
@@ -74,13 +87,18 @@ function eraseDisplay(mode, state) {
 }
 
 /**
- * Erase part or all of the current line based on the erase mode.
+ * Purpose: Erase part or all of the current line based on the erase mode.
  *   0 — from cursor to end of line
  *   1 — from start of line to cursor
  *   2 — entire line
- *
- * @param {number} mode  — erase mode
- * @param {object} state — screen state
+ * Inputs:
+ *   - mode: {number} erase mode (0, 1, or 2)
+ *   - state: {object} screen state { row, col, grid, rows, cols }
+ * Outputs: None (mutates state.grid in place).
+ * Side effects: Fills grid cells on the current row with spaces.
+ * Runner/env interactions: None.
+ * Capture behavior: None — operates on the virtual screen buffer.
+ * Failure behavior: Unrecognized modes are silently ignored (no-op).
  */
 function eraseLine(mode, state) {
     if (mode === 2) {
@@ -97,11 +115,16 @@ function eraseLine(mode, state) {
 }
 
 /**
- * Scroll the screen up by n lines. The top n lines are discarded,
+ * Purpose: Scroll the screen up by n lines. The top n lines are discarded,
  * remaining lines move up, and the bottom n lines become blank.
- *
- * @param {number} n     — number of lines to scroll
- * @param {object} state — screen state
+ * Inputs:
+ *   - n: {number} number of lines to scroll
+ *   - state: {object} screen state { row, col, grid, rows, cols }
+ * Outputs: None (mutates state.grid in place).
+ * Side effects: Shifts rows out of state.grid and pushes blank rows at the bottom.
+ * Runner/env interactions: None.
+ * Capture behavior: None — operates on the virtual screen buffer.
+ * Failure behavior: Clamps to state.rows to prevent over-scrolling.
  */
 function scrollUp(n, state) {
     for (let i = 0; i < n && i < state.rows; i++) {
@@ -111,11 +134,16 @@ function scrollUp(n, state) {
 }
 
 /**
- * Scroll the screen down by n lines. The bottom n lines are discarded,
+ * Purpose: Scroll the screen down by n lines. The bottom n lines are discarded,
  * remaining lines move down, and the top n lines become blank.
- *
- * @param {number} n     — number of lines to scroll
- * @param {object} state — screen state
+ * Inputs:
+ *   - n: {number} number of lines to scroll
+ *   - state: {object} screen state { row, col, grid, rows, cols }
+ * Outputs: None (mutates state.grid in place).
+ * Side effects: Pops rows from the bottom of state.grid and unshifts blank rows at the top.
+ * Runner/env interactions: None.
+ * Capture behavior: None — operates on the virtual screen buffer.
+ * Failure behavior: Clamps to state.rows to prevent over-scrolling.
  */
 function scrollDown(n, state) {
     for (let i = 0; i < n && i < state.rows; i++) {
@@ -125,16 +153,20 @@ function scrollDown(n, state) {
 }
 
 /**
- * Process a single CSI escape sequence. Updates cursor position
+ * Purpose: Process a single CSI escape sequence. Updates cursor position
  * and/or grid content based on the command character.
- *
  * Supported: A/B/C/D (cursor relative), H/f (cursor absolute),
  * G/d (cursor axis), E/F (next/prev line), J (erase display),
  * K (erase line), S/T (scroll), m (SGR — ignored).
- *
- * @param {string} paramStr — CSI parameter string
- * @param {string} cmd      — single-character command
- * @param {object} state    — { row, col, grid, rows, cols }
+ * Inputs:
+ *   - paramStr: {string} CSI parameter string (e.g. "5" or "1;2")
+ *   - cmd: {string} single-character command letter (e.g. "H", "J", "m")
+ *   - state: {object} screen state { row, col, grid, rows, cols }
+ * Outputs: None (mutates state in place — cursor position and/or grid content).
+ * Side effects: Delegates to eraseDisplay, eraseLine, scrollUp, or scrollDown for grid mutations.
+ * Runner/env interactions: None.
+ * Capture behavior: None — operates on already-captured and parsed data.
+ * Failure behavior: Unknown commands fall through the default case and are silently ignored.
  */
 function processCsi(paramStr, cmd, state) {
     // Default depends on command: J/K default to 0 (erase from cursor
