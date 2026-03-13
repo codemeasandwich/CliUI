@@ -14,13 +14,16 @@ const path = require("path");
 const { writeText } = require("./filesystem");
 
 /**
- * Build the episode summary object from the attempt history.
- *
- * @param {string}   episodeId  — unique episode identifier
- * @param {object}   task       — original task payload
- * @param {object[]} history    — array of per-attempt result objects
- * @param {string}   stopReason — why the loop stopped
- * @returns {object} the summary object
+ * Purpose: Build the episode summary object from the attempt history.
+ * Inputs:
+ *   - episodeId: {string} unique episode identifier
+ *   - task: {object} original task payload
+ *   - history: {object[]} array of per-attempt result objects
+ *   - stopReason: {string} why the loop stopped (pass_threshold, no_progress, max_attempts, runner_error)
+ * Outputs: {object} summary with episodeId, task, totalAttempts, scores, verdicts, finalScore, finalVerdict, stopReason, attempts, timestamp
+ * Side effects: None (pure function).
+ * Failure behavior: Handles empty history by returning safe defaults (finalScore: 0, finalVerdict: "error").
+ * Important assumptions: The history array contains result objects with score, verdict, durationMs, exitCode, timedOut, and evaluatorResult fields.
  */
 function buildSummary(episodeId, task, history, stopReason) {
     // Guard against empty history — can happen if runner_error occurs
@@ -75,10 +78,14 @@ function buildSummary(episodeId, task, history, stopReason) {
 }
 
 /**
- * Save the episode summary JSON to the episode directory.
- *
- * @param {string} episodeDir — absolute path to the episode folder
- * @param {object} summary   — the summary object from buildSummary
+ * Purpose: Save the episode summary JSON to the episode directory.
+ * Inputs:
+ *   - episodeDir: {string} absolute path to the episode folder
+ *   - summary: {object} the summary object from buildSummary
+ * Outputs: {Promise<void>}
+ * Side effects: Writes episode-summary.json to the filesystem.
+ * Failure behavior: Bubbles up writeText errors if unable to write.
+ * Important assumptions: episodeDir must already exist.
  */
 async function saveEpisodeSummary(episodeDir, summary) {
     const summaryPath = path.join(episodeDir, "episode-summary.json");
