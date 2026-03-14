@@ -50,6 +50,9 @@ exports.buildSequenceFromData = seqPkg.buildSequenceFromData
 
 exports.charsets = require('./lib/border/charsets');
 require('./lib/border/cutout'); // patches Element.prototype on import
+exports.renderCutoutBody = require('./lib/border/render-cutout-body');
+exports.intersection = require('./lib/border/intersection');
+exports.scrollbarGlyphs = require('./lib/border/scrollbar');
 
 exports.OutputBuffer = require('./lib/server-utils').OutputBuffer
 exports.InputBuffer = require('./lib/server-utils').InputBuffer

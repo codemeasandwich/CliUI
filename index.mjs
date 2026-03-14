@@ -41,6 +41,13 @@ export const {
   charsets
 } = galactica;
 
+// Uncategorized exports
+export const {
+  renderCutoutBody,
+  intersection,
+  scrollbarGlyphs
+} = galactica;
+
 // Server Utils exports
 export const {
   OutputBuffer,

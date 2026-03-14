@@ -31,6 +31,10 @@ Detailed widget documentation and examples for Galactica.
 - [Computed Grid](#computed-grid)
 - [Carousel](#carousel)
 
+## Rendering
+
+- [Cutout Body Rendering](#cutout-body-rendering)
+
 ---
 
 ## Line Chart
@@ -1592,3 +1596,92 @@ var row = galactica.buildFieldRow([
 | `opts.fixedWidths` | boolean | `false` | When `true`, use declared widths as-is and make the last field absorb remaining space |
 
 **Returns:** Content string of exactly `contentWidth` display cells.
+
+---
+
+## Cutout Body Rendering
+
+Render nested message boxes with scrolling, ellipsis clipping, and mixed-stroke border intersections inside a cutout-shaped viewport.
+
+### Architecture
+
+The renderer uses a **cell-level intent buffer** with layered composition:
+
+1. **Outer heavy frame** (`┃ ━ ┏ ┛`) — always wins at edge positions
+2. **Inner box borders** (`╭ ─ │ ╰`) — merge with outer frame via intersection resolver
+3. **Content text** — fills remaining cells, clipped to available width
+4. **Ellipsis** (`…`) — replaces last visible character when clipping occurs
+5. **Scrollbar** (`▴ ╽ ┊ ┆ ▾`) — dedicated column, never overwritten
+
+### Intersection Resolver
+
+When a light inner border meets the heavy outer frame, the final glyph is chosen by a canonical resolver that maps 4-directional stroke weights (`none`/`light`/`heavy`) to the correct Unicode box-drawing character. Examples:
+
+| Junction | Meaning | Glyph |
+|----------|---------|-------|
+| `┷` | heavy-horiz + light-up | scrollbar meets step border |
+| `┯` | heavy-horiz + light-down | top scrollbar junction |
+| `┹` | heavy-up + light-left + heavy-right | mixed corner |
+
+### Scrollbar Glyphs
+
+The scrollbar uses a contractual glyph set (never substituted):
+
+| Glyph | Unicode | Position |
+|-------|---------|----------|
+| `▴` | U+25B4 | Top arrow |
+| `▾` | U+25BE | Bottom arrow |
+| `╽` | U+257D | Thumb / handle |
+| `┊` | U+250A | Track near thumb |
+| `┆` | U+2506 | Track far from thumb |
+
+### Usage
+
+`````javascript
+var galactica = require('galactica')
+
+var screen = galactica.createScreen({ cols: 40, rows: 15 })
+
+galactica.renderCutoutBody(screen, {
+  xi: 0, xl: 24, yi: 1, yl: 12,
+  messages: [
+    { role: 'USER', text: 'completed!' },
+    { role: 'AI', text: 'I\'ll start by reading the\nassigned task document.' }
+  ],
+  scrollOffset: 0,
+  scrollbar: true,
+  bottomCutout: { width: 6, height: 2 }
+})
+
+screen.render()
+`````
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `xi` | number | — | Outer box left column (inclusive) |
+| `xl` | number | — | Outer box right column (exclusive) |
+| `yi` | number | — | Outer box top row |
+| `yl` | number | — | Outer box bottom row (exclusive) |
+| `messages` | Array | `[]` | `{ role, text }` items rendered as inner boxes |
+| `scrollOffset` | number | `0` | Lines scrolled off the top |
+| `scrollbar` | boolean | `true` | Show scrollbar column |
+| `bottomCutout` | object | — | `{ width, height }` for bottom-right step |
+| `attr` | number | `0` | Cell attribute for border characters |
+
+### Visual Example
+
+`````
+┃╭─ USER ─────╮                ╽┃
+┃│ completed! │                ┊┃
+┃╰────────────╯                ┆┃
+┃╭─ AI ───────────────────────╮┆┃
+┃│ I'll start by reading the  │┆┃
+┃│ assigned task document and │┆┃
+┃│ understanding the current  │▾┃
+┃│ sta… ┏━━━━━━━━━━━━━━━━━━━━━┷━┛
+┗┷━━━━━━┛ footer text
+`````
+
+Note the exact single-cell adjacency between `┃` and `│`, mixed-stroke junction `┷` at the scrollbar/step border intersection, and ellipsis `…` appearing only where content is clipped by the viewport.
