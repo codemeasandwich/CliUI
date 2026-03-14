@@ -18,6 +18,7 @@ export const {
   canvas,
   gauge,
   gaugeList,
+  textBar,
   lcd,
   donut,
   log,
