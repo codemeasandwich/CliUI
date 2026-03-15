@@ -13,6 +13,8 @@
  *   3. MMR selection: greedily pick entries that maximize relevance
  *      while penalizing similarity to already-selected entries
  *   4. Load full markdown bodies for selected entries
+ *   5. Cross-type dedup: remove lower-priority artifacts when a
+ *      higher-priority type covers the same failure (by tag overlap)
  *
  * @module apprentice/retrieve
  */
@@ -20,7 +22,7 @@
 const fs = require("fs");
 const CONFIG = require("./config");
 const { readIndex } = require("./index-manager");
-const { filterStopWords, jaccardSimilarity } = require("./tag-processing");
+const { filterStopWords, jaccardSimilarity, computeAdaptiveWeight } = require("./tag-processing");
 
 /**
  * Tokenize text into searchable keyword terms.
@@ -110,6 +112,81 @@ async function loadArtifactBody(entry) {
 }
 
 /**
+ * Remove cross-type duplicates from a retrieval result set.
+ *
+ * After per-type MMR selection, artifacts from different types may still
+ * describe the same failure (e.g. a memory and an anti-pattern created
+ * from the same episode critique). This function compares every cross-type
+ * pair by Jaccard tag similarity and removes the lower-priority duplicate.
+ *
+ * Type priority (highest kept): skills > antiPatterns > memories > exemplars > requirements.
+ * A skill supersedes a memory because it contains actionable instructions.
+ * An anti-pattern supersedes a memory because its repetition signal is stronger.
+ *
+ * @param {object} result    — { skills, memories, exemplars, antiPatterns, requirements }
+ * @param {number} threshold — Jaccard similarity above which two artifacts are duplicates (0 = disabled)
+ * @returns {object} cleaned result with lower-priority duplicates removed
+ */
+function deduplicateAcrossTypes(result, threshold) {
+    // Threshold 0 disables cross-type dedup entirely.
+    if (!threshold || threshold <= 0) return result;
+
+    // Priority determines which artifact survives when two are near-duplicates.
+    // Higher number = higher priority = kept over lower.
+    const TYPE_PRIORITY = {
+        skills: 5,
+        antiPatterns: 4,
+        memories: 3,
+        exemplars: 2,
+        requirements: 1,
+    };
+
+    // Flatten all artifacts with their type label for pairwise comparison.
+    const all = [];
+    for (const type of Object.keys(TYPE_PRIORITY)) {
+        for (const artifact of (result[type] || [])) {
+            all.push({ artifact, type });
+        }
+    }
+
+    // Track artifact IDs marked for removal.
+    const removeIds = new Set();
+
+    // Compare every cross-type pair. Within the same type, MMR already
+    // handled diversity — only cross-type pairs need checking here.
+    for (let i = 0; i < all.length; i++) {
+        for (let j = i + 1; j < all.length; j++) {
+            if (all[i].type === all[j].type) continue;
+
+            const tagsA = filterStopWords((all[i].artifact.tags || []).map((t) => t.toLowerCase()));
+            const tagsB = filterStopWords((all[j].artifact.tags || []).map((t) => t.toLowerCase()));
+            const sim = jaccardSimilarity(tagsA, tagsB);
+
+            if (sim > threshold) {
+                // Remove the lower-priority artifact.
+                const priA = TYPE_PRIORITY[all[i].type];
+                const priB = TYPE_PRIORITY[all[j].type];
+                if (priA >= priB) {
+                    removeIds.add(all[j].artifact.id);
+                } else {
+                    removeIds.add(all[i].artifact.id);
+                }
+            }
+        }
+    }
+
+    // Filter removed artifacts from each type array.
+    if (removeIds.size === 0) return result;
+    return {
+        skills:       (result.skills || []).filter((a) => !removeIds.has(a.id)),
+        memories:     (result.memories || []).filter((a) => !removeIds.has(a.id)),
+        exemplars:    (result.exemplars || []).filter((a) => !removeIds.has(a.id)),
+        antiPatterns: (result.antiPatterns || []).filter((a) => !removeIds.has(a.id)),
+        requirements: (result.requirements || []).filter((a) => !removeIds.has(a.id)),
+    };
+}
+
+/**
  * Retrieve relevant learning artifacts for a task.
  *
  * Reads all five index types, scores each entry against the task
@@ -150,11 +227,13 @@ async function retrieveForTask(task) {
      * Score, rank, and diversify entries using Maximal Marginal Relevance.
      *
      * MMR greedily selects entries that maximize:
-     *   mmrScore = relevanceScore - diversityWeight * maxSimilarity(candidate, selected)
+     *   mmrScore = relevanceScore - effectiveWeight * maxSimilarity(candidate, selected)
      *
-     * This balances relevance (picking high-scoring entries) against diversity
-     * (avoiding entries whose tags overlap heavily with already-selected ones).
-     * When diversityWeight = 0, MMR degrades to plain top-N by score.
+     * The effectiveWeight is computed adaptively from the candidate pool by
+     * computeAdaptiveWeight() — it increases when scores are clustered or tags
+     * are homogeneous, and decreases when the pool is sparse. The config
+     * diversityWeight serves as the baseline. When diversityWeight = 0,
+     * MMR degrades to plain top-N by score.
      *
      * @param {object[]} index — array of index entries
      * @param {number}   limit — max results to return
@@ -169,14 +248,15 @@ async function retrieveForTask(task) {
         if (candidates.length === 0) return [];
 
         // Greedy MMR selection for diversity.
-        // Tracks the top relevance score to set a minimum MMR threshold.
-        // Candidates whose MMR score drops below 50% of the top score are
-        // considered too redundant to include — they would waste prompt space
-        // repeating information already covered by a selected entry.
+        // Compute adaptive weight from the candidate pool: adjusts diversity
+        // pressure based on score clustering, pool depth, and tag homogeneity.
+        // When scores are clustered, weight increases to break ties meaningfully.
+        // When the pool is sparse, both weight and floor decrease to retain results.
         const selected = [];
         const remaining = [...candidates];
         const topScore = Math.max(...candidates.map((c) => c.score));
-        const mmrFloor = topScore * 0.5;
+        const { effectiveWeight, mmrFloorMultiplier } = computeAdaptiveWeight(candidates, limit, diversityWeight);
+        const mmrFloor = topScore * mmrFloorMultiplier;
 
         while (selected.length < limit && remaining.length > 0) {
             let bestIdx = 0;
@@ -202,7 +282,8 @@ async function retrieveForTask(task) {
                 }
 
                 // MMR formula: balance relevance against redundancy.
-                const mmrScore = candidate.score - diversityWeight * maxSim * candidate.score;
+                // Uses adaptive weight computed from pool characteristics.
+                const mmrScore = candidate.score - effectiveWeight * maxSim * candidate.score;
                 if (mmrScore > bestMmr) {
                     bestMmr = mmrScore;
                     bestIdx = i;
@@ -242,7 +323,14 @@ async function retrieveForTask(task) {
         topEntries(requirementIndex, maxRequirements),
     ]);
 
-    return { skills, memories, exemplars, antiPatterns, requirements };
+    // Cross-type deduplication: remove artifacts that duplicate findings
+    // already covered by a higher-priority type (e.g. an anti-pattern
+    // supersedes a memory from the same failure episode).
+    const crossThreshold = (limits.crossTypeThreshold != null) ? limits.crossTypeThreshold : 0.65;
+    return deduplicateAcrossTypes(
+        { skills, memories, exemplars, antiPatterns, requirements },
+        crossThreshold
+    );
 }
 
 /**
@@ -290,4 +378,5 @@ module.exports = {
     scoreEntry,
     extractKeywords,
     loadArtifactBody,
+    deduplicateAcrossTypes,
 };

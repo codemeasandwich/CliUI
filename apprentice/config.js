@@ -103,6 +103,15 @@ const CONFIG = {
         //   0.7 = strong diversity (suppresses entries with >70% tag overlap)
         //   1.0 = maximum diversity (similarity penalty equals full score)
         diversityWeight: 0.7,
+
+        // Cross-type deduplication threshold. After per-type MMR selection,
+        // artifacts from different types (e.g. a memory and an anti-pattern)
+        // with Jaccard tag similarity above this threshold are deduplicated —
+        // the lower-priority type's artifact is removed. Range [0, 1]:
+        //   0.0  = disabled (no cross-type dedup)
+        //   0.65 = remove cross-type duplicates with >65% tag overlap
+        //   1.0  = only remove identical-tag duplicates across types
+        crossTypeThreshold: 0.65,
     },
 
     // Filesystem paths relative to the project root or overridden by APPRENTICE_DATA_DIR.

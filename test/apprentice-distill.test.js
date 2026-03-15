@@ -33,6 +33,7 @@ const {
     scoreEntry,
     extractKeywords,
     loadArtifactBody,
+    deduplicateAcrossTypes,
 } = require("../apprentice/retrieve");
 const {
     buildApprenticePrompt,
@@ -46,7 +47,7 @@ const { bootstrapLearningDirs } = require("../apprentice/learning-store");
 const CONFIG = require("../apprentice/config");
 const { filterStopWords, jaccardSimilarity, STOP_WORDS } = require("../apprentice/tag-processing");
 const { retagIndex } = require("../apprentice/retag");
-const { writeMemoryArtifact } = require("../apprentice/artifact-writers");
+const { writeMemoryArtifact, writeAntiPatternArtifact } = require("../apprentice/artifact-writers");
 
 /**
  * Create isolated temp directory for test writes.
@@ -950,6 +951,109 @@ test("retagIndex cleans stop words from existing artifact tags", async () => {
         assert.ok(!afterIndex[0].tags.includes("create"), "should NOT have 'create' after retag");
         assert.ok(afterIndex[0].tags.includes("dashboard"), "should keep 'dashboard'");
         assert.ok(afterIndex[0].tags.includes("terminal"), "should keep 'terminal'");
+    } finally {
+        handle.restore();
+        fs.rmSync(base, { recursive: true, force: true });
+    }
+});
+
+// ─── Cross-Type Deduplication Tests ─────────────────────────────
+
+test("deduplicateAcrossTypes removes memory when anti-pattern has overlapping tags", () => {
+    // A memory and anti-pattern from the same failure share >65% tags.
+    // Anti-pattern has higher priority — memory should be removed.
+    const result = {
+        skills: [],
+        memories: [{ id: "mem_1", title: "dashboard crash", tags: ["dashboard", "terminal", "crash", "widget", "chart", "render"], confidence: 0.7, body: "..." }],
+        exemplars: [],
+        antiPatterns: [{ id: "ap_1", title: "repeated dashboard crash", tags: ["dashboard", "terminal", "crash", "widget", "chart", "pattern"], confidence: 0.8, body: "..." }],
+        requirements: [],
+    };
+
+    const cleaned = deduplicateAcrossTypes(result, 0.65);
+    assert.equal(cleaned.antiPatterns.length, 1, "anti-pattern should survive (higher priority)");
+    assert.equal(cleaned.memories.length, 0, "memory should be removed (lower priority, overlapping tags)");
+});
+
+test("deduplicateAcrossTypes preserves distinct artifacts with low tag overlap", () => {
+    // A memory about crashes and an anti-pattern about layout — different failures.
+    const result = {
+        skills: [],
+        memories: [{ id: "mem_2", title: "crash on startup", tags: ["crash", "startup", "error", "initialization"], confidence: 0.6, body: "..." }],
+        exemplars: [],
+        antiPatterns: [{ id: "ap_2", title: "layout overflow", tags: ["layout", "overflow", "grid", "widget", "border"], confidence: 0.7, body: "..." }],
+        requirements: [],
+    };
+
+    const cleaned = deduplicateAcrossTypes(result, 0.65);
+    assert.equal(cleaned.memories.length, 1, "memory should survive (distinct tags)");
+    assert.equal(cleaned.antiPatterns.length, 1, "anti-pattern should survive (distinct tags)");
+});
+
+test("deduplicateAcrossTypes with threshold 0 disables cross-type dedup", () => {
+    // Even with identical tags, threshold 0 should skip dedup.
+    const result = {
+        skills: [],
+        memories: [{ id: "mem_3", title: "same failure", tags: ["dashboard", "terminal", "crash"], confidence: 0.7, body: "..." }],
+        exemplars: [],
+        antiPatterns: [{ id: "ap_3", title: "same failure pattern", tags: ["dashboard", "terminal", "crash"], confidence: 0.8, body: "..." }],
+        requirements: [],
+    };
+
+    const cleaned = deduplicateAcrossTypes(result, 0);
+    assert.equal(cleaned.memories.length, 1, "memory should survive when threshold=0");
+    assert.equal(cleaned.antiPatterns.length, 1, "anti-pattern should survive when threshold=0");
+});
+
+test("deduplicateAcrossTypes skill beats memory when tags overlap", () => {
+    // Skill has higher priority than memory — skill survives.
+    const overlappingTags = ["sparkline", "chart", "terminal", "render", "braille"];
+    const result = {
+        skills: [{ id: "sk_1", title: "sparkline rendering", tags: [...overlappingTags, "technique"], confidence: 0.9, body: "..." }],
+        memories: [{ id: "mem_4", title: "sparkline failure", tags: [...overlappingTags, "failure"], confidence: 0.6, body: "..." }],
+        exemplars: [],
+        antiPatterns: [],
+        requirements: [],
+    };
+
+    const cleaned = deduplicateAcrossTypes(result, 0.65);
+    assert.equal(cleaned.skills.length, 1, "skill should survive (highest priority)");
+    assert.equal(cleaned.memories.length, 0, "memory should be removed (skill covers same topic)");
+});
+
+test("cross-type dedup integrates with retrieveForTask end-to-end", async () => {
+    // Create a memory and anti-pattern with overlapping tags about the same failure.
+    // retrieveForTask should return only the anti-pattern after cross-type dedup.
+    const base = tempDir("cross-type-e2e");
+    const handle = overrideConfigPaths(base);
+    try {
+        await bootstrapLearningDirs();
+
+        // Memory: single observation of a dashboard crash.
+        await writeMemoryArtifact({
+            title: "dashboard terminal crash on sparkline render",
+            tags: ["dashboard", "terminal", "crash", "sparkline", "render", "widget"],
+            confidence: 0.6,
+            body: "The dashboard crashed when rendering the sparkline widget",
+            source: "ep_cross_1",
+        });
+
+        // Anti-pattern: repeated dashboard crash (same failure, higher priority).
+        await writeAntiPatternArtifact({
+            title: "repeated dashboard terminal crash during sparkline",
+            tags: ["dashboard", "terminal", "crash", "sparkline", "render", "pattern"],
+            confidence: 0.8,
+            body: "Dashboard repeatedly crashes when rendering sparkline widgets",
+            source: "ep_cross_1",
+        });
+
+        const task = { request: "dashboard terminal sparkline render widget" };
+        const retrieved = await retrieveForTask(task);
+
+        // Anti-pattern should survive, memory should be deduplicated.
+        assert.equal(retrieved.antiPatterns.length, 1, "anti-pattern should be retrieved");
+        assert.equal(retrieved.memories.length, 0,
+            "memory should be removed by cross-type dedup (overlapping tags with anti-pattern)");
     } finally {
         handle.restore();
         fs.rmSync(base, { recursive: true, force: true });
