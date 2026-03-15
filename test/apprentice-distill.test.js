@@ -44,6 +44,9 @@ const { saveAttempt } = require("../apprentice/persistence");
 const { readIndex } = require("../apprentice/index-manager");
 const { bootstrapLearningDirs } = require("../apprentice/learning-store");
 const CONFIG = require("../apprentice/config");
+const { filterStopWords, jaccardSimilarity, STOP_WORDS } = require("../apprentice/tag-processing");
+const { retagIndex } = require("../apprentice/retag");
+const { writeMemoryArtifact } = require("../apprentice/artifact-writers");
 
 /**
  * Create isolated temp directory for test writes.
@@ -73,6 +76,7 @@ function overrideConfigPaths(base) {
     CONFIG.paths.prompts      = path.join(base, "prompts");
     CONFIG.paths.summaries    = path.join(base, "summaries");
     CONFIG.paths.episodes     = path.join(base, "episodes");
+    CONFIG.paths.requirements = path.join(base, "requirements");
     return {
         restore() {
             Object.assign(CONFIG.paths, original);
@@ -113,14 +117,17 @@ function mockAttempt(attemptNum, score, critique, script) {
 
 // ─── Tag Extraction Tests ───────────────────────────────────────
 
-test("extractTags tokenizes text into lowercase keywords", () => {
+test("extractTags tokenizes text into lowercase keywords and filters stop words", () => {
     const tags = extractTags("Create a Line Chart with CPU usage data");
-    assert.ok(tags.includes("create"), "should include 'create'");
+    // Domain terms preserved.
     assert.ok(tags.includes("line"), "should include 'line'");
     assert.ok(tags.includes("chart"), "should include 'chart'");
     assert.ok(tags.includes("cpu"), "should include 'cpu'");
     assert.ok(tags.includes("usage"), "should include 'usage'");
     assert.ok(tags.includes("data"), "should include 'data'");
+    // Stop words filtered.
+    assert.ok(!tags.includes("create"), "should filter stop word 'create'");
+    assert.ok(!tags.includes("with"), "should filter stop word 'with'");
 });
 
 test("extractTags deduplicates and filters short tokens", () => {
@@ -139,12 +146,15 @@ test("extractTags returns empty for null/empty input", () => {
 
 // ─── extractKeywords (retrieve.js) Tests ────────────────────────
 
-test("extractKeywords produces searchable terms from task text", () => {
+test("extractKeywords produces searchable terms and filters stop words", () => {
     const kw = extractKeywords("Build a terminal dashboard with charts");
-    assert.ok(kw.includes("build"));
+    // Domain terms preserved.
     assert.ok(kw.includes("terminal"));
     assert.ok(kw.includes("dashboard"));
     assert.ok(kw.includes("charts"));
+    // Stop words filtered.
+    assert.ok(!kw.includes("build"), "should filter stop word 'build'");
+    assert.ok(!kw.includes("with"), "should filter stop word 'with'");
 });
 
 // ─── scoreEntry Tests ───────────────────────────────────────────
@@ -189,7 +199,7 @@ test("extractMemories creates memory from evaluator critique", async () => {
             mockAttempt(1, 4, "The line chart is missing axis labels and the data array is empty. Need to populate data."),
         ];
 
-        const created = await extractMemories(task, history, "ep_test_mem");
+        const created = await extractMemories(task, history, "ep_test_mem", extractTags);
 
         // Should create a memory for the failing attempt's critique.
         assert.strictEqual(created.length, 1);
@@ -215,7 +225,7 @@ test("extractMemories skips passing attempts", async () => {
         // Score 8 passes threshold (default 7), so no memory should be created.
         const history = [mockAttempt(1, 8, "Great dashboard, everything looks perfect!")];
 
-        const created = await extractMemories(task, history, "ep_skip");
+        const created = await extractMemories(task, history, "ep_skip", extractTags);
         assert.strictEqual(created.length, 0);
     } finally {
         handle.restore();
@@ -237,7 +247,7 @@ test("extractExemplar creates exemplar from passing episode", async () => {
             mockAttempt(2, 8, "Looks great!", 'const galactica = require("galactica");\n// perfect dashboard'),
         ];
 
-        const result = await extractExemplar("ep_exemplar", task, history);
+        const result = await extractExemplar("ep_exemplar", task, history, extractTags);
 
         // Should create an exemplar for the passing attempt.
         assert.ok(result !== null, "should create exemplar");
@@ -262,7 +272,7 @@ test("extractExemplar returns null when no passing attempts exist", async () => 
         const task = { request: "Build something" };
         const history = [mockAttempt(1, 3, "Failed"), mockAttempt(2, 4, "Still failing")];
 
-        const result = await extractExemplar("ep_no_exemplar", task, history);
+        const result = await extractExemplar("ep_no_exemplar", task, history, extractTags);
         assert.strictEqual(result, null);
     } finally {
         handle.restore();
@@ -286,7 +296,7 @@ test("extractAntiPatterns detects repeated failure scores", async () => {
             mockAttempt(3, 3, "Widget not rendered"),
         ];
 
-        const created = await extractAntiPatterns(task, history, "ep_anti");
+        const created = await extractAntiPatterns(task, history, "ep_anti", extractTags);
 
         // Should detect the group of 3 identical scores.
         assert.ok(created.length >= 1, `expected at least 1 anti-pattern, got ${created.length}`);
@@ -307,7 +317,7 @@ test("extractAntiPatterns returns empty for single attempt", async () => {
         await bootstrapLearningDirs();
 
         const task = { request: "test" };
-        const created = await extractAntiPatterns(task, [mockAttempt(1, 2, "bad")], "ep_s");
+        const created = await extractAntiPatterns(task, [mockAttempt(1, 2, "bad")], "ep_s", extractTags);
         assert.strictEqual(created.length, 0);
     } finally {
         handle.restore();
@@ -327,7 +337,7 @@ test("maybeExtractSkill creates skill for high-score quick pass", async () => {
         // Single attempt, score 9 — meets all gates.
         const history = [mockAttempt(1, 9, "Perfect!", "// great script")];
 
-        const result = await maybeExtractSkill("ep_skill", task, history);
+        const result = await maybeExtractSkill("ep_skill", task, history, extractTags);
         assert.ok(result !== null, "should create skill");
         assert.strictEqual(result.type, "skill");
 
@@ -353,7 +363,7 @@ test("maybeExtractSkill refuses skill for long convergence", async () => {
             mockAttempt(5, 9, "pass!"),
         ];
 
-        const result = await maybeExtractSkill("ep_no_skill", task, history);
+        const result = await maybeExtractSkill("ep_no_skill", task, history, extractTags);
         assert.strictEqual(result, null, "should NOT create skill for 5-attempt pass");
     } finally {
         handle.restore();
@@ -371,7 +381,7 @@ test("maybeExtractSkill refuses skill for score below 8", async () => {
         // Score 7 passes threshold but < 8, so no skill.
         const history = [mockAttempt(1, 7, "ok")];
 
-        const result = await maybeExtractSkill("ep_low", task, history);
+        const result = await maybeExtractSkill("ep_low", task, history, extractTags);
         assert.strictEqual(result, null, "should NOT create skill for score 7");
     } finally {
         handle.restore();
@@ -754,4 +764,223 @@ test("config has retrieval limits", () => {
     assert.strictEqual(CONFIG.retrieval.maxMemories, 5);
     assert.strictEqual(CONFIG.retrieval.maxExemplars, 2);
     assert.strictEqual(CONFIG.retrieval.maxAntiPatterns, 3);
+});
+
+test("config has diversityWeight", () => {
+    assert.strictEqual(CONFIG.retrieval.diversityWeight, 0.7);
+});
+
+// ─── Stop-Word Filtering Tests ──────────────────────────────────
+
+test("filterStopWords removes English stop words", () => {
+    const tokens = ["the", "terminal", "dashboard", "with", "chart", "and", "widget"];
+    const filtered = filterStopWords(tokens);
+    assert.ok(filtered.includes("terminal"), "should keep 'terminal'");
+    assert.ok(filtered.includes("dashboard"), "should keep 'dashboard'");
+    assert.ok(filtered.includes("chart"), "should keep 'chart'");
+    assert.ok(filtered.includes("widget"), "should keep 'widget'");
+    assert.ok(!filtered.includes("the"), "should remove 'the'");
+    assert.ok(!filtered.includes("with"), "should remove 'with'");
+    assert.ok(!filtered.includes("and"), "should remove 'and'");
+});
+
+test("filterStopWords removes low-signal verbs and nouns", () => {
+    const tokens = ["using", "create", "build", "galactica", "file", "output", "braille"];
+    const filtered = filterStopWords(tokens);
+    assert.ok(filtered.includes("galactica"), "should keep domain term 'galactica'");
+    assert.ok(filtered.includes("braille"), "should keep domain term 'braille'");
+    assert.ok(!filtered.includes("using"), "should remove 'using'");
+    assert.ok(!filtered.includes("create"), "should remove 'create'");
+    assert.ok(!filtered.includes("build"), "should remove 'build'");
+    assert.ok(!filtered.includes("file"), "should remove 'file'");
+    assert.ok(!filtered.includes("output"), "should remove 'output'");
+});
+
+test("filterStopWords returns empty for all-stop-word input", () => {
+    const tokens = ["the", "and", "with", "from", "for"];
+    assert.deepStrictEqual(filterStopWords(tokens), []);
+});
+
+test("STOP_WORDS set contains expected entries", () => {
+    assert.ok(STOP_WORDS.has("the"));
+    assert.ok(STOP_WORDS.has("using"));
+    assert.ok(STOP_WORDS.has("file"));
+    assert.ok(!STOP_WORDS.has("terminal"), "should NOT contain domain term 'terminal'");
+    assert.ok(!STOP_WORDS.has("chart"), "should NOT contain domain term 'chart'");
+});
+
+// ─── Jaccard Similarity Tests ───────────────────────────────────
+
+test("jaccardSimilarity returns 1.0 for identical sets", () => {
+    assert.strictEqual(jaccardSimilarity(["chart", "widget"], ["chart", "widget"]), 1.0);
+});
+
+test("jaccardSimilarity returns 0.0 for disjoint sets", () => {
+    assert.strictEqual(jaccardSimilarity(["chart", "widget"], ["database", "migration"]), 0.0);
+});
+
+test("jaccardSimilarity returns 1.0 for both empty", () => {
+    assert.strictEqual(jaccardSimilarity([], []), 1.0);
+});
+
+test("jaccardSimilarity returns 0.0 for one empty", () => {
+    assert.strictEqual(jaccardSimilarity(["chart"], []), 0.0);
+    assert.strictEqual(jaccardSimilarity([], ["chart"]), 0.0);
+});
+
+test("jaccardSimilarity computes correct partial overlap", () => {
+    // {chart, widget, dashboard} ∩ {chart, widget, gauge} = {chart, widget}
+    // Union = {chart, widget, dashboard, gauge} = 4
+    // Jaccard = 2/4 = 0.5
+    const sim = jaccardSimilarity(
+        ["chart", "widget", "dashboard"],
+        ["chart", "widget", "gauge"]
+    );
+    assert.ok(Math.abs(sim - 0.5) < 0.001, `expected ~0.5, got ${sim}`);
+});
+
+// ─── MMR Diversity Tests ────────────────────────────────────────
+
+test("MMR retrieval suppresses near-duplicate memories", async () => {
+    const base = tempDir("mmr-diversity");
+    const handle = overrideConfigPaths(base);
+    try {
+        await bootstrapLearningDirs();
+
+        // Create 5 memories with nearly identical tags (simulating the
+        // real problem: 5 memories all about "prose instead of code").
+        for (let i = 1; i <= 5; i++) {
+            await writeMemoryArtifact({
+                title: `Failure observation ${i}: dashboard prose instead of JavaScript`,
+                tags: ["dashboard", "prose", "javascript", "failure", "parse"],
+                confidence: 0.7,
+                body: `Attempt ${i} produced prose instead of code. Variation ${i}.`,
+                source: `ep_dup_${i}`,
+            });
+        }
+
+        // Retrieve for a task about dashboards — all 5 should match.
+        const task = { request: "dashboard with JavaScript chart" };
+        const retrieved = await retrieveForTask(task);
+
+        // With MMR diversity (weight 0.7), near-duplicate entries should be
+        // suppressed. We expect fewer than 5 memories returned even though
+        // maxMemories is 5, because they're all essentially identical.
+        const memCount = retrieved.memories.length;
+        assert.ok(memCount < 5,
+            `MMR should suppress duplicates: expected < 5 memories, got ${memCount}`);
+        assert.ok(memCount >= 1,
+            `Should still return at least 1 memory, got ${memCount}`);
+    } finally {
+        handle.restore();
+        fs.rmSync(base, { recursive: true, force: true });
+    }
+});
+
+test("MMR preserves genuinely different artifacts", async () => {
+    const base = tempDir("mmr-different");
+    const handle = overrideConfigPaths(base);
+    try {
+        await bootstrapLearningDirs();
+
+        // Create 3 memories with DIFFERENT tags (distinct failure modes).
+        await writeMemoryArtifact({
+            title: "Chart rendering failure",
+            tags: ["chart", "rendering", "braille", "axis"],
+            confidence: 0.7,
+            body: "Chart did not render braille characters correctly",
+            source: "ep_1",
+        });
+        await writeMemoryArtifact({
+            title: "Log widget border missing",
+            tags: ["log", "widget", "border", "missing"],
+            confidence: 0.7,
+            body: "Log widget had no visible border",
+            source: "ep_2",
+        });
+        await writeMemoryArtifact({
+            title: "Grid layout overflow",
+            tags: ["grid", "layout", "overflow", "terminal"],
+            confidence: 0.7,
+            body: "Grid exceeded terminal dimensions",
+            source: "ep_3",
+        });
+
+        // Retrieve for a broad task that matches all three.
+        const task = { request: "terminal chart log grid layout widget border rendering" };
+        const retrieved = await retrieveForTask(task);
+
+        // All 3 are genuinely different — MMR should keep all of them.
+        assert.strictEqual(retrieved.memories.length, 3,
+            `MMR should keep distinct artifacts: expected 3, got ${retrieved.memories.length}`);
+    } finally {
+        handle.restore();
+        fs.rmSync(base, { recursive: true, force: true });
+    }
+});
+
+// ─── Retag Utility Tests ────────────────────────────────────────
+
+test("retagIndex cleans stop words from existing artifact tags", async () => {
+    const base = tempDir("retag-clean");
+    const handle = overrideConfigPaths(base);
+    try {
+        await bootstrapLearningDirs();
+
+        // Create a memory with polluted tags (simulating old artifacts).
+        await writeMemoryArtifact({
+            title: "The program failed to create the dashboard output",
+            tags: ["the", "program", "failed", "create", "dashboard", "output", "terminal"],
+            confidence: 0.7,
+            body: "The dashboard terminal rendering produced no visible chart widget output",
+            source: "ep_retag_test",
+        });
+
+        // Verify the polluted tags are in the index.
+        const beforeIndex = await readIndex("memory");
+        assert.ok(beforeIndex[0].tags.includes("the"), "should have 'the' before retag");
+
+        // Run retag.
+        const result = await retagIndex("memory");
+        assert.ok(result.retagged >= 1, `expected >= 1 retagged, got ${result.retagged}`);
+
+        // Verify the index now has cleaned tags.
+        const afterIndex = await readIndex("memory");
+        assert.ok(!afterIndex[0].tags.includes("the"), "should NOT have 'the' after retag");
+        assert.ok(!afterIndex[0].tags.includes("create"), "should NOT have 'create' after retag");
+        assert.ok(afterIndex[0].tags.includes("dashboard"), "should keep 'dashboard'");
+        assert.ok(afterIndex[0].tags.includes("terminal"), "should keep 'terminal'");
+    } finally {
+        handle.restore();
+        fs.rmSync(base, { recursive: true, force: true });
+    }
+});
+
+// ─── Backward Compatibility Tests ───────────────────────────────
+
+test("retrieval still finds artifacts created with old noisy tags", async () => {
+    const base = tempDir("compat-noisy-tags");
+    const handle = overrideConfigPaths(base);
+    try {
+        await bootstrapLearningDirs();
+
+        // Simulate an old artifact with unfiltered tags (including stop words).
+        await writeMemoryArtifact({
+            title: "The chart widget was not showing the data correctly",
+            tags: ["the", "chart", "widget", "was", "not", "showing", "data"],
+            confidence: 0.7,
+            body: "Chart widget did not display data correctly",
+            source: "ep_old",
+        });
+
+        // Retrieve with a clean query — should still match on domain terms.
+        const task = { request: "chart widget data display" };
+        const retrieved = await retrieveForTask(task);
+
+        assert.ok(retrieved.memories.length >= 1,
+            "should find artifact despite old noisy tags (scoreEntry filters tags at query time)");
+    } finally {
+        handle.restore();
+        fs.rmSync(base, { recursive: true, force: true });
+    }
 });

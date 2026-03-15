@@ -3,12 +3,16 @@
  *
  * Loads relevant learning artifacts before each Apprentice attempt.
  * Scores index entries by keyword overlap with the task text, tag
- * relevance, and recency. Returns the top-scoring entries per type
- * with their full markdown bodies for prompt inclusion.
+ * relevance, and recency. Uses Maximal Marginal Relevance (MMR) to
+ * select diverse results — preventing near-duplicate artifacts from
+ * consuming all retrieval slots.
  *
- * Retrieval is intentionally simple for this phase: keyword matching
- * and tag overlap. More sophisticated retrieval (embedding similarity,
- * semantic search) can be added later without changing the interface.
+ * Retrieval pipeline:
+ *   1. Tokenize task text → keywords (with stop-word filtering)
+ *   2. Score each index entry by keyword overlap + confidence bonus
+ *   3. MMR selection: greedily pick entries that maximize relevance
+ *      while penalizing similarity to already-selected entries
+ *   4. Load full markdown bodies for selected entries
  *
  * @module apprentice/retrieve
  */
@@ -16,12 +20,13 @@
 const fs = require("fs");
 const CONFIG = require("./config");
 const { readIndex } = require("./index-manager");
+const { filterStopWords, jaccardSimilarity } = require("./tag-processing");
 
 /**
  * Tokenize text into searchable keyword terms.
  * Lowercases, splits on whitespace/punctuation, filters terms < 3 chars,
- * and deduplicates. Shared with distill.js logic but kept independent
- * to avoid coupling retrieval to distillation internals.
+ * removes stop words, and deduplicates. Uses the same stop-word vocabulary
+ * as distill.js so tags created at write time match queries at read time.
  *
  * @param {string} text — raw text to tokenize
  * @returns {string[]} deduplicated lowercase keyword tokens
@@ -33,7 +38,7 @@ function extractKeywords(text) {
         .replace(/[^a-z0-9\s-]/g, " ")
         .split(/\s+/)
         .filter((t) => t.length >= 3);
-    return [...new Set(tokens)];
+    return filterStopWords([...new Set(tokens)]);
 }
 
 /**
@@ -44,8 +49,8 @@ function extractKeywords(text) {
  *   2. Tag overlap — entry tags matching keywords
  *   3. Confidence — the artifact's own confidence rating adds a small bonus
  *
- * Each matched keyword contributes 1 point. Title and tag matches are
- * weighted equally. Confidence adds a fractional bonus (0–1 range).
+ * Each matched keyword contributes 1 point. Confidence adds a fractional
+ * bonus (0–1 range × 0.5 weight) to prefer higher-quality entries.
  *
  * @param {object}   entry    — index entry { id, title, tags, confidence }
  * @param {string[]} keywords — search keywords from the task text
@@ -63,8 +68,9 @@ function scoreEntry(entry, keywords) {
         if (titleTokens.includes(kw)) titleHits++;
     }
 
-    // Count keyword overlaps in tags.
-    const entryTags = (entry.tags || []).map((t) => t.toLowerCase());
+    // Count keyword overlaps in tags (apply stop-word filter to stored tags
+    // for consistency — older artifacts may have unfiltered tags).
+    const entryTags = filterStopWords((entry.tags || []).map((t) => t.toLowerCase()));
     let tagHits = 0;
     for (const kw of keywords) {
         if (entryTags.includes(kw)) tagHits++;
@@ -106,12 +112,13 @@ async function loadArtifactBody(entry) {
 /**
  * Retrieve relevant learning artifacts for a task.
  *
- * Reads all four index types, scores each entry against the task
- * keywords, and returns the top-N results per type with their full
- * body text loaded for prompt inclusion.
+ * Reads all five index types, scores each entry against the task
+ * keywords, and uses MMR (Maximal Marginal Relevance) to select
+ * diverse top-N results per type. This prevents near-duplicate
+ * artifacts from consuming all slots within a category.
  *
  * @param {object} task — { request, wireframe?, cols?, rows? }
- * @returns {Promise<object>} { skills, memories, exemplars, antiPatterns }
+ * @returns {Promise<object>} { skills, memories, exemplars, antiPatterns, requirements }
  *   Each array contains { id, title, tags, confidence, body } entries.
  */
 async function retrieveForTask(task) {
@@ -125,33 +132,95 @@ async function retrieveForTask(task) {
     const maxMemories     = limits.maxMemories || 5;
     const maxExemplars    = limits.maxExemplars || 2;
     const maxAntiPatterns = limits.maxAntiPatterns || 3;
+    const maxRequirements = limits.maxRequirements || 3;
 
-    // Load all four indexes (returns empty arrays if indexes don't exist).
-    const [skillIndex, memoryIndex, exemplarIndex, antiPatternIndex] = await Promise.all([
+    // MMR diversity weight: higher = stronger duplicate suppression.
+    const diversityWeight = (limits.diversityWeight != null) ? limits.diversityWeight : 0.7;
+
+    // Load all five indexes (returns empty arrays if indexes don't exist).
+    const [skillIndex, memoryIndex, exemplarIndex, antiPatternIndex, requirementIndex] = await Promise.all([
         readIndex("skill"),
         readIndex("memory"),
         readIndex("exemplar"),
         readIndex("anti-pattern"),
+        readIndex("requirement"),
     ]);
 
     /**
-     * Score and sort entries, take top-N, load their bodies.
+     * Score, rank, and diversify entries using Maximal Marginal Relevance.
+     *
+     * MMR greedily selects entries that maximize:
+     *   mmrScore = relevanceScore - diversityWeight * maxSimilarity(candidate, selected)
+     *
+     * This balances relevance (picking high-scoring entries) against diversity
+     * (avoiding entries whose tags overlap heavily with already-selected ones).
+     * When diversityWeight = 0, MMR degrades to plain top-N by score.
      *
      * @param {object[]} index — array of index entries
      * @param {number}   limit — max results to return
-     * @returns {Promise<object[]>} top entries with body text loaded
+     * @returns {Promise<object[]>} selected entries with body text loaded
      */
     async function topEntries(index, limit) {
         // Score all entries and filter to those with any relevance.
-        const scored = index
+        const candidates = index
             .map((entry) => ({ entry, score: scoreEntry(entry, keywords) }))
-            .filter((s) => s.score > 0)
-            .sort((a, b) => b.score - a.score)
-            .slice(0, limit);
+            .filter((s) => s.score > 0);
 
-        // Load the full body text for each top entry.
+        if (candidates.length === 0) return [];
+
+        // Greedy MMR selection for diversity.
+        // Tracks the top relevance score to set a minimum MMR threshold.
+        // Candidates whose MMR score drops below 50% of the top score are
+        // considered too redundant to include — they would waste prompt space
+        // repeating information already covered by a selected entry.
+        const selected = [];
+        const remaining = [...candidates];
+        const topScore = Math.max(...candidates.map((c) => c.score));
+        const mmrFloor = topScore * 0.5;
+
+        while (selected.length < limit && remaining.length > 0) {
+            let bestIdx = 0;
+            let bestMmr = -Infinity;
+
+            for (let i = 0; i < remaining.length; i++) {
+                const candidate = remaining[i];
+
+                // Compute max Jaccard similarity to any already-selected entry.
+                // Clean tags through stop-word filter for consistent comparison
+                // (older artifacts may have unfiltered tags in the index).
+                let maxSim = 0;
+                const candidateTags = filterStopWords(
+                    (candidate.entry.tags || []).map((t) => t.toLowerCase())
+                );
+
+                for (const sel of selected) {
+                    const selTags = filterStopWords(
+                        (sel.entry.tags || []).map((t) => t.toLowerCase())
+                    );
+                    const sim = jaccardSimilarity(candidateTags, selTags);
+                    if (sim > maxSim) maxSim = sim;
+                }
+
+                // MMR formula: balance relevance against redundancy.
+                const mmrScore = candidate.score - diversityWeight * maxSim * candidate.score;
+                if (mmrScore > bestMmr) {
+                    bestMmr = mmrScore;
+                    bestIdx = i;
+                }
+            }
+
+            // Stop if the best remaining candidate is too redundant.
+            // This prevents near-duplicate entries from filling all slots
+            // when their information is already covered by selected entries.
+            if (selected.length > 0 && bestMmr < mmrFloor) break;
+
+            selected.push(remaining[bestIdx]);
+            remaining.splice(bestIdx, 1);
+        }
+
+        // Load the full body text for each selected entry.
         const results = [];
-        for (const { entry } of scored) {
+        for (const { entry } of selected) {
             const body = await loadArtifactBody(entry);
             results.push({
                 id: entry.id,
@@ -165,14 +234,15 @@ async function retrieveForTask(task) {
     }
 
     // Retrieve top entries for each artifact type in parallel.
-    const [skills, memories, exemplars, antiPatterns] = await Promise.all([
+    const [skills, memories, exemplars, antiPatterns, requirements] = await Promise.all([
         topEntries(skillIndex, maxSkills),
         topEntries(memoryIndex, maxMemories),
         topEntries(exemplarIndex, maxExemplars),
         topEntries(antiPatternIndex, maxAntiPatterns),
+        topEntries(requirementIndex, maxRequirements),
     ]);
 
-    return { skills, memories, exemplars, antiPatterns };
+    return { skills, memories, exemplars, antiPatterns, requirements };
 }
 
 /**
@@ -187,7 +257,8 @@ function hasRetrievedContent(retrieved) {
         (retrieved.skills && retrieved.skills.length > 0) ||
         (retrieved.memories && retrieved.memories.length > 0) ||
         (retrieved.exemplars && retrieved.exemplars.length > 0) ||
-        (retrieved.antiPatterns && retrieved.antiPatterns.length > 0)
+        (retrieved.antiPatterns && retrieved.antiPatterns.length > 0) ||
+        (retrieved.requirements && retrieved.requirements.length > 0)
     );
 }
 
@@ -202,7 +273,7 @@ function hasRetrievedContent(retrieved) {
 function retrievedIds(retrieved) {
     if (!retrieved) return [];
     const ids = [];
-    for (const type of ["skills", "memories", "exemplars", "antiPatterns"]) {
+    for (const type of ["skills", "memories", "exemplars", "antiPatterns", "requirements"]) {
         if (retrieved[type]) {
             for (const entry of retrieved[type]) {
                 if (entry.id) ids.push(entry.id);

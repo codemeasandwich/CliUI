@@ -24,17 +24,28 @@ const CONFIG = {
     // Provider used when asking the Apprentice to generate code.
     // Any provider registered in the LLM Gateway is valid (e.g. "claude-cli",
     // "gemini-cli", "anthropic-api", "ollama").
-    apprenticeProvider: "gemini-cli",
+    apprenticeProvider: "claude-cli",
 
     // Model to request from the provider. When undefined, the gateway
     // uses the provider's default_model from its config.
+    // Model alias for the Claude CLI. Valid aliases: "sonnet", "opus",
+    // or full names like "claude-sonnet-4-5-20250929". When undefined,
+    // the gateway uses the provider's default_model from its config.
     apprenticeModel: undefined,
 
     // Provider used when asking the Evaluator to score the captured output.
-    evaluatorProvider: "gemini-cli",
+    // Switched from gemini-cli (quota exhausted) to claude-cli.
+    evaluatorProvider: "claude-cli",
 
     // Model for the Evaluator actor. Undefined = provider default.
     evaluatorModel: undefined,
+
+    // Provider used when asking the Requirements Analyst to diagnose
+    // persistent failures. Activates only when trigger conditions are met.
+    analystProvider: "claude-cli",
+
+    // Model for the Analyst actor. Undefined = provider default.
+    analystModel: undefined,
 
     // Virtual terminal dimensions and environment communicated to the
     // Apprentice and enforced by the PTY runner at execution time.
@@ -59,6 +70,11 @@ const CONFIG = {
     // Prevents runaway processes from blocking the trainer indefinitely.
     timeoutMs: 30_000,
 
+    // Maximum wall-clock milliseconds to wait for a streaming LLM response.
+    // Accommodates slower CLI providers (claude-cli in agentic mode).
+    // Default: 600s (10 min).
+    streamTimeoutMs: 600_000,
+
     // Maximum attempts per episode before the loop gives up.
     // The loop may stop earlier if it detects no progress.
     maxAttempts: 10,
@@ -79,6 +95,14 @@ const CONFIG = {
         maxMemories: 5,
         maxExemplars: 2,
         maxAntiPatterns: 3,
+        maxRequirements: 3,
+
+        // MMR diversity weight (lambda). Controls how strongly the retrieval
+        // penalizes near-duplicate artifacts. Range [0, 1]:
+        //   0.0 = no diversity (pure top-N by score, legacy behavior)
+        //   0.7 = strong diversity (suppresses entries with >70% tag overlap)
+        //   1.0 = maximum diversity (similarity penalty equals full score)
+        diversityWeight: 0.7,
     },
 
     // Filesystem paths relative to the project root or overridden by APPRENTICE_DATA_DIR.
@@ -98,6 +122,7 @@ const CONFIG = {
             summaries:    path.join(base, "summaries"),
             benchmarks:   path.join(base, "benchmarks"),
             reports:      path.join(base, "benchmarks", "reports"),
+            requirements: path.join(base, "requirements"),
         };
     })(),
 
