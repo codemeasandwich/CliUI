@@ -167,15 +167,20 @@ Textarea.prototype._resetCursor = function() {
 Textarea.prototype._indexOfContentOnCursor = function() {
   var idx = 0;
 
+  // Guard: clamp loop to _clines length to avoid accessing undefined elements
+  // when cursor state is stale (e.g. empty textarea receives focus).
+  var maxY = this._clines ? this._clines.length : 0;
+
   // NOTE: This has a performance cost for very large text.
   // For editing large text, consider using the external editor (e key).
   for (var y = 0; y < this.childBase + this.editorCursor.y; y++) {
+    if (y >= maxY) break;
     idx = idx
       + this._clines[y].replace(/\u0003/g, '').length
       + (y > 0 && this._hasReturn(y - 1) ? 1 : 0);
   }
 
-  if (this._clines[y] !== undefined) {
+  if (y < maxY && this._clines[y] !== undefined) {
     idx = idx + 1
       + this._clines[y].slice(0, this.editorCursor.x).replace(/\u0003/g, '').length
       + (y > 0 && this._hasReturn(y - 1) ? 1 : 0);
@@ -302,7 +307,7 @@ Textarea.prototype._updateCursor = function(get, input) {
         var nextCxMax = this._cursorMaxRight(currentLine, lpos);
         this._setCursor(cy, nextCxMax < cx ? nextCxMax : this.cursor.x);
       } else {
-        this.scroll(1);
+        if (this.scroll) this.scroll(1);
         this._setCursorY(cyMax);
       }
     } else if (cy < program.y) {
@@ -310,7 +315,7 @@ Textarea.prototype._updateCursor = function(get, input) {
         var prevCxMax = this._cursorMaxRight(currentLine, lpos);
         this._setCursor(cy, prevCxMax < cx ? prevCxMax : this.cursor.x);
       } else {
-        this.scroll(-1);
+        if (this.scroll) this.scroll(-1);
         this._setCursorY(this.editorMargin.top);
       }
     } else {
@@ -481,7 +486,7 @@ Textarea.prototype._typeScroll = function() {
   // XXX Workaround
   var height = this.height - this.iheight;
   if (this._clines.length - this.childBase > height) {
-    this.scroll(this._clines.length);
+    if (this.scroll) this.scroll(this._clines.length);
   }
 };
 
