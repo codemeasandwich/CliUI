@@ -107,7 +107,8 @@ Apprentice closes the loop between generation and reality. Every piece of code i
 ### Execution
 | Module | Responsibility |
 |--------|---------------|
-| `pty-runner.js` | PTY-backed script execution with ANSI capture |
+| `pty-runner.js` | PTY backend selector and public API (preference: script → node-pty → basic spawn) |
+| `script-pty-runner.js` | Pure-JS PTY execution via Unix `script` command (no native deps) |
 | `screen-normalize.js` | ANSI-to-plaintext final-frame converter |
 | `screen-csi.js` | CSI escape sequence processor (cursor, erase, scroll) |
 
@@ -213,10 +214,18 @@ learning/
 |-----------|------|---------|
 | **Bun** | Runtime | JavaScript execution engine |
 | **api-ape** | Local (symlinked) | WebSocket RPC client for LLM Gateway |
-| **node-pty** | npm | Native pseudoterminal for ANSI output capture |
+| **node-pty** | npm (optional) | Native PTY fallback — only needed if Unix `script` command is unavailable |
 | **Node.js stdlib** | Built-in | fs, path, crypto, child_process, os |
 
 No external YAML or markdown parsing libraries are used. Front-matter parsing is handled by a minimal inline parser in `front-matter.js`.
+
+### PTY Backend Preference
+
+The execution pipeline needs a real pseudoterminal so TUI programs render genuine ANSI output. Three backends are tried in order:
+
+1. **`script` command** (pure JS) — Uses the Unix `script -q /dev/null` command to allocate a PTY. Zero native dependencies. Works on macOS and Linux. Terminal dimensions controlled via `stty rows R cols C`.
+2. **`node-pty`** (native addon) — Falls back to the native C++ addon if `script` is unavailable (e.g. Windows). Requires compilation against the host Node/Bun ABI.
+3. **Basic `child_process.spawn`** — Final fallback with piped stdio. `isTTY` is false, so TUI programs may not render correctly.
 
 ## Related Documentation
 

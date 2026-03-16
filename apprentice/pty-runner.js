@@ -2,11 +2,14 @@
  * apprentice/pty-runner.js
  *
  * Purpose: PTY-Backed script execution environment.
- * Responsibilities: Spawns scripts inside a real pseudoterminal so TUI programs produce genuine ANSI output (colors, cursor moves, box drawing).
+ * Responsibilities: Spawns scripts inside a real pseudoterminal so TUI programs
+ *   produce genuine ANSI output (colors, cursor moves, box drawing).
  * Major sections:
- *   - loadNodePty / isPtyAvailable: Environment capability detection.
- *   - runScriptPty: Core function to spawn PTY and capture raw ANSI stream.
- * Important invariants: Stderr must be redirected and captured separately since PTY inherently merges stdout and stderr.
+ *   - PTY backend selection: script-pty (pure JS) → node-pty (native) → unavailable.
+ *   - isPtyAvailable / runScriptPty: Public API consumed by runner.js.
+ * Important invariants:
+ *   - Preference order: pure-JS script runner first (no native deps), node-pty second.
+ *   - stderr must be redirected and captured separately since PTY merges stdout/stderr.
  */
 
 const path = require("path");
@@ -15,12 +18,22 @@ const os = require("os");
 const crypto = require("crypto");
 const CONFIG = require("./config");
 
+// ─── Backend 1: Pure-JS script-based PTY (preferred) ───────────
+
+const {
+    isScriptCommandAvailable,
+    runScriptViaPty,
+} = require("./script-pty-runner");
+
+// ─── Backend 2: Native node-pty addon (fallback) ────────────────
+
 /**
  * Purpose: Attempt to load the node-pty native addon.
  * Inputs: None
  * Outputs: {object|null} the node-pty module object or null if unavailable.
- * Side effects: First call requires access to native modules; logs a warning if compilation or loading fails.
- * Failure behavior: Catches require errors gracefully and returns null, preventing fatal crashes on unsupported systems.
+ * Side effects: First call requires access to native modules; logs a warning
+ *   if compilation or loading fails.
+ * Failure behavior: Catches require errors and returns null.
  * Important assumptions: Called once and cached at module load time.
  */
 function loadNodePty() {
@@ -29,8 +42,7 @@ function loadNodePty() {
     } catch (err) {
         console.warn(
             `[pty-runner] node-pty unavailable: ${err.message}. ` +
-            `Falling back to basic runner. Install node-pty for ` +
-            `full PTY support: npm install node-pty`
+            `Will use script-based PTY or basic runner fallback.`
         );
         return null;
     }
@@ -39,17 +51,37 @@ function loadNodePty() {
 // Cache the import result so we only warn once per process.
 const pty = loadNodePty();
 
+// ─── Backend Selection ──────────────────────────────────────────
+
+// Determine which PTY backend to use at startup and log the choice
+// so the developer knows which path is active.
+const useScriptPty = isScriptCommandAvailable();
+const useNodePty = !useScriptPty && pty !== null;
+
+if (useScriptPty) {
+    console.log("[pty-runner] Using pure-JS PTY backend (script command)");
+} else if (useNodePty) {
+    console.log("[pty-runner] Using native node-pty backend");
+} else {
+    console.warn(
+        "[pty-runner] No PTY backend available. " +
+        "TUI programs will not render correctly in fallback mode."
+    );
+}
+
 /**
- * Purpose: Determine whether the PTY runner is available on this system.
+ * Purpose: Determine whether any PTY runner backend is available.
  * Inputs: None
- * Outputs: {boolean} true if node-pty loaded successfully.
+ * Outputs: {boolean} true if either script-pty or node-pty is usable.
  * Side effects: None
  * Failure behavior: None
- * Important assumptions: `loadNodePty` has already been called and its result cached in the upper module scope.
+ * Important assumptions: Both backends were probed at module load time.
  */
 function isPtyAvailable() {
-    return pty !== null;
+    return useScriptPty || useNodePty;
 }
+
+// ─── node-pty helpers (only used when useNodePty === true) ──────
 
 /**
  * Purpose: Generate a unique temporary file path for stderr capture.
@@ -57,7 +89,7 @@ function isPtyAvailable() {
  * Outputs: {string} absolute path to a unique temp file
  * Side effects: Uses crypto to generate random bytes.
  * Failure behavior: Propagates crypto errors if system entropy is exhausted.
- * Important assumptions: The OS temp directory is writable and disk space is available.
+ * Important assumptions: The OS temp directory is writable.
  */
 function stderrTempPath() {
     const id = crypto.randomBytes(4).toString("hex");
@@ -65,12 +97,13 @@ function stderrTempPath() {
 }
 
 /**
- * Purpose: Build the PTY environment object by merging process env with terminal overrides.
+ * Purpose: Build the PTY environment object by merging process env
+ *   with terminal overrides.
  * Inputs: None
  * Outputs: {object} key-value environment map for the PTY child process
  * Side effects: None
  * Failure behavior: None
- * Important assumptions: Overrides (`CONFIG.terminal.env`) enforce deterministic locale and terminal type so TUI output is consistent across environments.
+ * Important assumptions: Overrides enforce deterministic locale and terminal type.
  */
 function buildPtyEnv() {
     return {
@@ -80,16 +113,16 @@ function buildPtyEnv() {
 }
 
 /**
- * Purpose: Run a script inside a real pseudoterminal and capture the output.
+ * Purpose: Run a script inside a PTY using node-pty (native backend).
  * Inputs:
  *   - scriptPath: {string} absolute path to the .js executable file
- *   - timeoutMs: {number} max wall-clock execution milliseconds permitted
- * Outputs: {Promise<{stdout: string, stderr: string, rawAnsi: string, exitCode: number, timedOut: boolean, durationMs: number}>} structured execution payload
- * Side effects: Spawns a new shell process via native API, writes stderr to a temporary file, and cleans up the temp file on resolution. Sets asynchronous timeout timers.
- * Failure behavior: Resolves with a fallback error payload containing exitCode 1 and stderr message if PTY spawn fails synchronously. Temp file cleanup errors are ignored best-effort.
- * Important assumptions: Relies on `node-pty` being successfully loaded. Assumes host has `/bin/sh` or `$SHELL` available.
+ *   - timeoutMs: {number} max wall-clock execution milliseconds
+ * Outputs: {Promise<{stdout, stderr, rawAnsi, exitCode, timedOut, durationMs}>}
+ * Side effects: Spawns a shell via native addon, writes stderr to temp file.
+ * Failure behavior: Resolves with exitCode 1 and stderr message on spawn failure.
+ * Important assumptions: Relies on `node-pty` being successfully loaded.
  */
-function runScriptPty(scriptPath, timeoutMs) {
+function runNodePty(scriptPath, timeoutMs) {
     return new Promise((resolve) => {
         const stderrFile = stderrTempPath();
         let rawAnsi = "";
@@ -98,18 +131,14 @@ function runScriptPty(scriptPath, timeoutMs) {
         const startTime = Date.now();
 
         // Build the shell command that runs the script and redirects
-        // stderr to our temp file. The PTY captures everything else.
-        // Paths are single-quoted with internal quotes escaped to
-        // prevent shell injection and handle spaces in paths.
-        const safeScript = scriptPath.replace(/'/g, "'\\''")
-        const safeSterr = stderrFile.replace(/'/g, "'\\''")
+        // stderr to a temp file. Paths are single-quoted with internal
+        // quotes escaped to prevent shell injection.
+        const safeScript = scriptPath.replace(/'/g, "'\\''");
+        const safeSterr = stderrFile.replace(/'/g, "'\\''");
         const shellCmd =
             `${CONFIG.runCommand} run '${safeScript}' 2>'${safeSterr}'`;
 
         // Spawn inside a PTY with controlled dimensions and env.
-        // The shell: choose the user's shell or /bin/sh as fallback.
-        // Wrap in try/catch because node-pty can throw synchronously
-        // on spawn failure (e.g. posix_spawnp error under Node.js).
         const shell = process.env.SHELL || "/bin/sh";
         let ptyProcess;
         try {
@@ -121,13 +150,9 @@ function runScriptPty(scriptPath, timeoutMs) {
                 env: buildPtyEnv(),
             });
         } catch (spawnErr) {
-            // Synchronous spawn failure — return a failed result that
-            // the caller can handle (e.g. fall back to basic runner).
             console.error(
-                `[pty-runner] PTY spawn failed: ${spawnErr.message}. ` +
-                `The script will not execute via PTY. Check that the ` +
-                `shell '${shell}' exists and node-pty is built for ` +
-                `this Node/Bun version.`
+                `[pty-runner] node-pty spawn failed: ${spawnErr.message}. ` +
+                `The script will not execute via native PTY.`
             );
             resolve({
                 stdout: "",
@@ -140,14 +165,12 @@ function runScriptPty(scriptPath, timeoutMs) {
             return;
         }
 
-        // Accumulate all PTY output data. This is the merged terminal
-        // stream containing ANSI escape sequences, cursor movements,
-        // box-drawing characters, colors, etc.
+        // Accumulate all PTY output data — the merged terminal stream.
         ptyProcess.onData((data) => {
             rawAnsi += data;
         });
 
-        // Wall-clock timeout guard. Kill runaway PTY processes.
+        // Wall-clock timeout guard.
         const timer = setTimeout(() => {
             if (!settled) {
                 timedOut = true;
@@ -155,8 +178,7 @@ function runScriptPty(scriptPath, timeoutMs) {
             }
         }, timeoutMs);
 
-        // Resolve when the PTY process exits. Read stderr from the
-        // temp file, calculate duration, and clean up.
+        // Resolve when the PTY process exits.
         ptyProcess.onExit(({ exitCode }) => {
             if (settled) return;
             settled = true;
@@ -164,16 +186,15 @@ function runScriptPty(scriptPath, timeoutMs) {
 
             const durationMs = Date.now() - startTime;
 
-            // Read stderr from the temp file. The file may not exist
-            // if the shell command failed before the redirect.
+            // Read stderr from the temp file.
             let stderr = "";
             try {
                 stderr = fs.readFileSync(stderrFile, "utf-8");
             } catch (_readErr) {
-                // No stderr file — not an error, just means no stderr.
+                // No stderr file — not an error.
             }
 
-            // Clean up the temp file (best effort, ignore errors).
+            // Clean up the temp file (best effort).
             try {
                 fs.unlinkSync(stderrFile);
             } catch (_unlinkErr) {
@@ -181,8 +202,6 @@ function runScriptPty(scriptPath, timeoutMs) {
             }
 
             resolve({
-                // stdout is the raw ANSI stream for Phase 2. The
-                // normalized version is computed by screen-normalize.
                 stdout: rawAnsi,
                 stderr,
                 rawAnsi,
@@ -191,6 +210,39 @@ function runScriptPty(scriptPath, timeoutMs) {
                 durationMs,
             });
         });
+    });
+}
+
+// ─── Public API ─────────────────────────────────────────────────
+
+/**
+ * Purpose: Run a script inside a real PTY using the best available backend.
+ * Inputs:
+ *   - scriptPath: {string} absolute path to the .js file
+ *   - timeoutMs: {number} max wall-clock execution milliseconds
+ * Outputs: {Promise<{stdout, stderr, rawAnsi, exitCode, timedOut, durationMs}>}
+ * Side effects: Spawns child processes.
+ * Failure behavior: Falls through backends; resolves with error result if all fail.
+ * Important assumptions: At least one backend was detected as available
+ *   (caller checked isPtyAvailable() before calling).
+ */
+function runScriptPty(scriptPath, timeoutMs) {
+    // Prefer the pure-JS script-based PTY (no native deps).
+    if (useScriptPty) {
+        return runScriptViaPty(scriptPath, timeoutMs);
+    }
+    // Fall back to the native node-pty addon.
+    if (useNodePty) {
+        return runNodePty(scriptPath, timeoutMs);
+    }
+    // Should not reach here — caller checks isPtyAvailable() first.
+    return Promise.resolve({
+        stdout: "",
+        stderr: "No PTY backend available.",
+        rawAnsi: "",
+        exitCode: 1,
+        timedOut: false,
+        durationMs: 0,
     });
 }
 
