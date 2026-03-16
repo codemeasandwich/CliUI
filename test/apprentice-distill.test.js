@@ -45,7 +45,7 @@ const { saveAttempt } = require("../apprentice/persistence");
 const { readIndex } = require("../apprentice/index-manager");
 const { bootstrapLearningDirs } = require("../apprentice/learning-store");
 const CONFIG = require("../apprentice/config");
-const { filterStopWords, jaccardSimilarity, STOP_WORDS } = require("../apprentice/tag-processing");
+const { filterStopWords, jaccardSimilarity, STOP_WORDS, computeAdaptiveWeight } = require("../apprentice/tag-processing");
 const { retagIndex } = require("../apprentice/retag");
 const { writeMemoryArtifact, writeAntiPatternArtifact } = require("../apprentice/artifact-writers");
 
@@ -1054,6 +1054,184 @@ test("cross-type dedup integrates with retrieveForTask end-to-end", async () => 
         assert.equal(retrieved.antiPatterns.length, 1, "anti-pattern should be retrieved");
         assert.equal(retrieved.memories.length, 0,
             "memory should be removed by cross-type dedup (overlapping tags with anti-pattern)");
+    } finally {
+        handle.restore();
+        fs.rmSync(base, { recursive: true, force: true });
+    }
+});
+
+// ─── Adaptive Diversity Weight Tests ────────────────────────────
+
+test("computeAdaptiveWeight: clustered scores produce higher weight than spread scores", () => {
+    // Clustered: all candidates score 3.0 — diversity must break ties.
+    const clustered = [
+        { entry: { tags: ["chart", "terminal"] }, score: 3.0 },
+        { entry: { tags: ["chart", "widget"] }, score: 3.0 },
+        { entry: { tags: ["chart", "dashboard"] }, score: 3.0 },
+        { entry: { tags: ["chart", "render"] }, score: 3.0 },
+    ];
+    // Spread: one dominant candidate, rest are weak.
+    const spread = [
+        { entry: { tags: ["chart", "terminal"] }, score: 5.0 },
+        { entry: { tags: ["chart", "widget"] }, score: 1.0 },
+        { entry: { tags: ["chart", "dashboard"] }, score: 1.0 },
+        { entry: { tags: ["chart", "render"] }, score: 1.0 },
+    ];
+
+    const clusteredResult = computeAdaptiveWeight(clustered, 3, 0.7);
+    const spreadResult = computeAdaptiveWeight(spread, 3, 0.7);
+
+    assert.ok(clusteredResult.effectiveWeight > spreadResult.effectiveWeight,
+        `clustered weight (${clusteredResult.effectiveWeight}) should exceed spread weight (${spreadResult.effectiveWeight})`);
+});
+
+test("computeAdaptiveWeight: sparse pool produces lower weight than deep pool", () => {
+    // Sparse: 2 candidates for 5 slots.
+    const sparse = [
+        { entry: { tags: ["chart", "terminal"] }, score: 3.0 },
+        { entry: { tags: ["widget", "dashboard"] }, score: 2.5 },
+    ];
+    // Deep: 10 candidates for 5 slots.
+    const deep = [];
+    for (let i = 0; i < 10; i++) {
+        deep.push({ entry: { tags: [`tag${i}`, "terminal"] }, score: 3.0 });
+    }
+
+    const sparseResult = computeAdaptiveWeight(sparse, 5, 0.7);
+    const deepResult = computeAdaptiveWeight(deep, 5, 0.7);
+
+    assert.ok(sparseResult.effectiveWeight < deepResult.effectiveWeight,
+        `sparse weight (${sparseResult.effectiveWeight}) should be less than deep weight (${deepResult.effectiveWeight})`);
+});
+
+test("computeAdaptiveWeight: homogeneous tags produce higher weight than diverse tags", () => {
+    // Homogeneous: all candidates share the same tags.
+    const homogeneous = [
+        { entry: { tags: ["dashboard", "terminal", "chart"] }, score: 3.0 },
+        { entry: { tags: ["dashboard", "terminal", "chart"] }, score: 2.8 },
+        { entry: { tags: ["dashboard", "terminal", "chart"] }, score: 2.6 },
+        { entry: { tags: ["dashboard", "terminal", "chart"] }, score: 2.4 },
+    ];
+    // Diverse: all candidates have completely different tags.
+    const diverse = [
+        { entry: { tags: ["dashboard", "terminal", "chart"] }, score: 3.0 },
+        { entry: { tags: ["sparkline", "braille", "gauge"] }, score: 2.8 },
+        { entry: { tags: ["grid", "layout", "border"] }, score: 2.6 },
+        { entry: { tags: ["buffer", "screen", "widget"] }, score: 2.4 },
+    ];
+
+    const homoResult = computeAdaptiveWeight(homogeneous, 3, 0.7);
+    const divResult = computeAdaptiveWeight(diverse, 3, 0.7);
+
+    assert.ok(homoResult.effectiveWeight > divResult.effectiveWeight,
+        `homogeneous weight (${homoResult.effectiveWeight}) should exceed diverse weight (${divResult.effectiveWeight})`);
+});
+
+test("computeAdaptiveWeight: graceful degradation for edge cases", () => {
+    // Single candidate — returns baseline unchanged.
+    const single = [{ entry: { tags: ["chart"] }, score: 2.0 }];
+    const singleResult = computeAdaptiveWeight(single, 3, 0.7);
+    assert.strictEqual(singleResult.effectiveWeight, 0.7,
+        "single candidate should return baseline weight");
+    assert.strictEqual(singleResult.mmrFloorMultiplier, 0.5,
+        "single candidate should return default floor");
+
+    // Empty candidates — returns baseline.
+    const emptyResult = computeAdaptiveWeight([], 3, 0.7);
+    assert.strictEqual(emptyResult.effectiveWeight, 0.7,
+        "empty candidates should return baseline weight");
+
+    // All candidates have empty tags — should not crash.
+    const emptyTags = [
+        { entry: { tags: [] }, score: 3.0 },
+        { entry: { tags: [] }, score: 2.5 },
+        { entry: { tags: [] }, score: 2.0 },
+    ];
+    const emptyTagsResult = computeAdaptiveWeight(emptyTags, 3, 0.7);
+    assert.ok(typeof emptyTagsResult.effectiveWeight === "number",
+        "empty tags should produce a numeric weight");
+    assert.ok(!isNaN(emptyTagsResult.effectiveWeight),
+        "empty tags should not produce NaN");
+});
+
+test("computeAdaptiveWeight: effective weight clamped to [0, 1]", () => {
+    // Extreme conditions: all signals maxed out.
+    // Clustered scores (all equal), deep pool, identical tags.
+    const extreme = [];
+    for (let i = 0; i < 30; i++) {
+        extreme.push({ entry: { tags: ["dashboard", "terminal", "chart"] }, score: 3.0 });
+    }
+
+    const result = computeAdaptiveWeight(extreme, 3, 0.9);
+    assert.ok(result.effectiveWeight <= 1.0,
+        `effective weight (${result.effectiveWeight}) must not exceed 1.0`);
+    assert.ok(result.effectiveWeight >= 0,
+        `effective weight (${result.effectiveWeight}) must not be negative`);
+});
+
+test("computeAdaptiveWeight: baseline 0 disables adaptation entirely", () => {
+    const candidates = [
+        { entry: { tags: ["dashboard", "terminal", "chart"] }, score: 3.0 },
+        { entry: { tags: ["dashboard", "terminal", "chart"] }, score: 3.0 },
+        { entry: { tags: ["dashboard", "terminal", "chart"] }, score: 3.0 },
+    ];
+    const result = computeAdaptiveWeight(candidates, 3, 0);
+    assert.strictEqual(result.effectiveWeight, 0,
+        "baseline 0 should produce effectiveWeight 0");
+});
+
+test("computeAdaptiveWeight: sparse pool gets lower MMR floor multiplier", () => {
+    const sparse = [
+        { entry: { tags: ["chart"] }, score: 3.0 },
+        { entry: { tags: ["widget"] }, score: 2.5 },
+    ];
+    const deep = [];
+    for (let i = 0; i < 15; i++) {
+        deep.push({ entry: { tags: [`tag${i}`] }, score: 3.0 });
+    }
+
+    const sparseResult = computeAdaptiveWeight(sparse, 5, 0.7);
+    const deepResult = computeAdaptiveWeight(deep, 5, 0.7);
+
+    assert.ok(sparseResult.mmrFloorMultiplier < deepResult.mmrFloorMultiplier,
+        `sparse floor (${sparseResult.mmrFloorMultiplier}) should be lower than deep floor (${deepResult.mmrFloorMultiplier})`);
+    assert.ok(sparseResult.mmrFloorMultiplier >= 0.3,
+        "sparse floor should not drop below 0.3");
+    assert.ok(deepResult.mmrFloorMultiplier <= 0.5,
+        "deep floor should not exceed 0.5");
+});
+
+test("adaptive MMR retrieval: sparse pool returns all available results", async () => {
+    // 2 memories with moderate tag overlap for 5 slots.
+    // Adaptive weight should lower diversity pressure and floor,
+    // keeping both results instead of suppressing the second.
+    const base = tempDir("adaptive-sparse");
+    const handle = overrideConfigPaths(base);
+    try {
+        await bootstrapLearningDirs();
+
+        await writeMemoryArtifact({
+            title: "terminal chart rendering crash",
+            tags: ["terminal", "chart", "rendering", "crash"],
+            confidence: 0.7,
+            body: "Chart crashed during terminal rendering",
+            source: "ep_sparse_1",
+        });
+        await writeMemoryArtifact({
+            title: "terminal chart display glitch",
+            tags: ["terminal", "chart", "display", "glitch"],
+            confidence: 0.6,
+            body: "Chart had display glitches in terminal",
+            source: "ep_sparse_2",
+        });
+
+        const task = { request: "terminal chart rendering display" };
+        const retrieved = await retrieveForTask(task);
+
+        // Both memories should be returned — sparse pool (2 for 5 slots)
+        // should not suppress either result.
+        assert.strictEqual(retrieved.memories.length, 2,
+            `sparse pool should return both memories, got ${retrieved.memories.length}`);
     } finally {
         handle.restore();
         fs.rmSync(base, { recursive: true, force: true });

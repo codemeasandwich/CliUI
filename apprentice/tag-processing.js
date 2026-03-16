@@ -109,4 +109,111 @@ function jaccardSimilarity(tagsA, tagsB) {
     return union === 0 ? 0 : intersection / union;
 }
 
-module.exports = { STOP_WORDS, filterStopWords, jaccardSimilarity };
+/**
+ * Compute context-adaptive diversity weight and MMR floor for retrieval.
+ *
+ * Static diversityWeight fails in three scenarios: clustered scores (ties
+ * broken by iteration order), spread scores (over-penalizes strong-but-similar
+ * candidates), and sparse pools (suppresses results when few exist). This
+ * function adapts both the diversity weight and MMR floor based on three
+ * observable signals from the candidate pool.
+ *
+ * Signals:
+ *   1. Score concentration — coefficient of variation of relevance scores.
+ *      Clustered scores → higher weight (use diversity to break ties).
+ *      Spread scores → lower weight (scores already differentiate).
+ *   2. Saturation ratio — candidates available vs slots requested.
+ *      Sparse pool → lower weight and floor (don't suppress the few you have).
+ *      Deep pool → full weight (plenty of alternatives to choose from).
+ *   3. Tag homogeneity — mean pairwise Jaccard across sampled pairs.
+ *      Identical tags → higher weight (tags don't differentiate, force diversity).
+ *      Diverse tags → lower weight (tags already provide natural variety).
+ *
+ * Combined formula:
+ *   adjustmentFactor = mean(scoreConcentration, saturation, meanJaccard)
+ *   effectiveWeight  = clamp(baseline * (0.4 + 1.2 * adjustmentFactor), 0, 1)
+ *
+ * The 0.4–1.6 multiplier range means the baseline is scaled down to 40% at
+ * minimum (spread scores, sparse pool, diverse tags) and up to 160% at maximum
+ * (clustered scores, deep pool, homogeneous tags), clamped to [0, 1].
+ *
+ * @param {Array<{entry: {tags?: string[]}, score: number}>} candidates — scored entries
+ * @param {number} limit — number of retrieval slots available
+ * @param {number} baselineWeight — static diversityWeight from config (default 0.7)
+ * @returns {{ effectiveWeight: number, mmrFloorMultiplier: number }}
+ */
+function computeAdaptiveWeight(candidates, limit, baselineWeight) {
+    // Baseline 0 means diversity is explicitly disabled — skip computation.
+    if (baselineWeight === 0) return { effectiveWeight: 0, mmrFloorMultiplier: 0.5 };
+
+    // Single or no candidates — diversity is meaningless.
+    if (candidates.length <= 1) return { effectiveWeight: baselineWeight, mmrFloorMultiplier: 0.5 };
+
+    // ── Signal 1: Score concentration (coefficient of variation) ──
+    // Low CV = scores are clustered = diversity should do more work.
+    const scores = candidates.map((c) => c.score);
+    const meanScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+    let scoreConcentration = 1.0;
+    if (meanScore > 0) {
+        const variance = scores.reduce((sum, s) => sum + (s - meanScore) ** 2, 0) / scores.length;
+        const cv = Math.sqrt(variance) / meanScore;
+        scoreConcentration = 1 / (1 + cv);
+    }
+
+    // ── Signal 2: Saturation ratio (candidates vs slots) ──
+    // Sparse pool (ratio < 1) = lower weight to avoid over-suppression.
+    // Cap at 3x to prevent absurdly large pools from inflating the signal.
+    const saturation = Math.min(candidates.length / limit, 3) / 3;
+
+    // ── Signal 3: Tag homogeneity (sampled mean Jaccard) ──
+    // Compare tags across candidate pairs to measure redundancy in the pool.
+    // For small pools compute all pairs; for larger pools sample 20 pairs
+    // to keep computation bounded at O(1) rather than O(n^2).
+    let meanJaccard = 0;
+    const cleanedTags = candidates.map((c) =>
+        filterStopWords((c.entry.tags || []).map((t) => t.toLowerCase()))
+    );
+
+    const pairs = [];
+    if (candidates.length <= 6) {
+        // All pairwise combinations for small pools.
+        for (let i = 0; i < candidates.length; i++) {
+            for (let j = i + 1; j < candidates.length; j++) {
+                pairs.push([i, j]);
+            }
+        }
+    } else {
+        // Sample 20 random pairs for larger pools.
+        for (let p = 0; p < 20; p++) {
+            const i = Math.floor(Math.random() * candidates.length);
+            let j = Math.floor(Math.random() * (candidates.length - 1));
+            if (j >= i) j++;
+            pairs.push([i, j]);
+        }
+    }
+
+    if (pairs.length > 0) {
+        let totalSim = 0;
+        for (const [i, j] of pairs) {
+            // Both-empty tags = no evidence of redundancy, treat as 0.
+            if (cleanedTags[i].length === 0 && cleanedTags[j].length === 0) continue;
+            totalSim += jaccardSimilarity(cleanedTags[i], cleanedTags[j]);
+        }
+        meanJaccard = totalSim / pairs.length;
+    }
+
+    // ── Combine signals into adjustment factor ──
+    const adjustmentFactor = (scoreConcentration + saturation + meanJaccard) / 3;
+
+    // Scale baseline by [0.4, 1.6] range, clamp to [0, 1].
+    const raw = baselineWeight * (0.4 + 1.2 * adjustmentFactor);
+    const effectiveWeight = isNaN(raw) ? baselineWeight : Math.min(Math.max(raw, 0), 1.0);
+
+    // Adaptive floor: sparse pools get a lower floor (0.3) to retain results,
+    // deep pools keep the standard floor (0.5) to suppress redundancy.
+    const mmrFloorMultiplier = 0.3 + 0.2 * saturation;
+
+    return { effectiveWeight, mmrFloorMultiplier };
+}
+
+module.exports = { STOP_WORDS, filterStopWords, jaccardSimilarity, computeAdaptiveWeight };

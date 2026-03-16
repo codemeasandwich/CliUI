@@ -26,6 +26,34 @@ const { runDeterministicChecks } = require("./deterministic");
 const { calculateHybridScore } = require("./hybrid-scorer");
 
 /**
+ * Purpose: Print a labeled, framed block of text to the console for verbose training observation.
+ * Inputs:
+ *   - label: {string} header text for the block (e.g. "TARGET WIREFRAME")
+ *   - content: {string} multi-line text to display
+ * Outputs: None (writes to stdout).
+ * Side effects: Console output only.
+ * Failure behavior: Prints "(empty)" if content is falsy.
+ * Important assumptions: Uses box-drawing characters for visual separation in scrolling terminal logs.
+ */
+function logFramedBlock(label, content) {
+    // Fixed frame width for consistent visual scanning in terminal logs.
+    const width = 60;
+    const header = `  ┌─ ${label} ${"─".repeat(Math.max(0, width - label.length - 5))}┐`;
+    const footer = `  └${"─".repeat(width - 1)}┘`;
+    const lines = (content || "(empty)").split("\n");
+
+    console.log(header);
+    for (const line of lines) {
+        // Pad or truncate each line to fit inside the frame.
+        const padded = line.length >= width - 4
+            ? line.slice(0, width - 4)
+            : line + " ".repeat(width - 4 - line.length);
+        console.log(`  │ ${padded} │`);
+    }
+    console.log(footer);
+}
+
+/**
  * Purpose: Run a single execution attempt: prompt → extract → execute → normalize → evaluate.
  * Inputs:
  *   - api: {object} connected api-ape client
@@ -46,6 +74,13 @@ async function runSingleAttempt(api, prompt, task, attemptNum) {
     const response = await askApprentice(api, prompt);
     console.log(`  [attempt ${attemptNum}] Received ${response.length} chars`);
 
+    // Verbose: show the target wireframe on the first attempt so the
+    // developer watching the logs knows what the apprentice is aiming for.
+    // Only printed once because the wireframe is constant across attempts.
+    if (attemptNum === 1 && task.wireframe) {
+        logFramedBlock("TARGET WIREFRAME", task.wireframe);
+    }
+
     // Step B — Extract the runnable script from the response.
     const script = extractScript(response);
 
@@ -65,6 +100,10 @@ async function runSingleAttempt(api, prompt, task, attemptNum) {
     // Step D — Normalize the raw ANSI output to final-frame text.
     const rawForNormalize = runResult.rawAnsi || runResult.stdout || "";
     const screenText = normalizeScreen(rawForNormalize, cols, rows);
+
+    // Verbose: show the captured screen output so the developer can
+    // visually compare it against the target wireframe above.
+    logFramedBlock(`CAPTURED OUTPUT (attempt ${attemptNum})`, screenText);
 
     // Step E — Evaluate through the Evaluator actor.
     // Attach screenText to runResult so the evaluator prompt builder
