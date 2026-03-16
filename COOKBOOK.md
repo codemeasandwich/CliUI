@@ -24,6 +24,7 @@ Detailed widget documentation and examples for Galactica.
 ## Integration
 
 - [Programmatic Integration Patterns](#programmatic-integration-patterns)
+- [Screen Options](#screen-options)
 
 ## Layouts
 
@@ -1130,6 +1131,54 @@ fetchAndUpdate()  // initial load
 - **Resize handling**: Widgets auto-redraw on container resize using cached data from the last `setData()` call. No manual re-render needed for terminal resize.
 - **Deferred init**: Use `widget.on('attach', fn)` if you need to defer `setData()` until the widget is mounted on a screen.
 - **Model mutability**: `diag.getModel()` returns the live mutable model. Changes take effect when you call `diag.setModel(model)` or `diag.layout()` / `diag.route()`.
+
+---
+
+## Screen Options
+
+### Exit Mode
+
+Controls what happens to the rendered dashboard when the app exits.
+
+By default, Galactica runs in the terminal's alternate buffer. When the app exits, the alternate buffer is discarded and your previous shell content reappears — the dashboard vanishes. The `exitMode` option changes this teardown behavior.
+
+| Value | Behavior |
+|---|---|
+| `'restore'` (default) | Normal alternate-buffer restore. Previous shell content reappears. |
+| `'inline'` | Last painted frame is written into the main terminal buffer so it stays visible after exit. The shell prompt appears below the frame. |
+
+`````javascript
+// Dashboard stays visible after exit
+var screen = galactica.screen({ exitMode: 'inline' })
+`````
+
+Convenience alias — `preserveOnExit: true` maps to `exitMode: 'inline'`. If both are provided, `exitMode` wins.
+
+`````javascript
+// Equivalent to exitMode: 'inline'
+var screen = galactica.screen({ preserveOnExit: true })
+`````
+
+During runtime, the app behaves identically regardless of exit mode — full-screen alternate buffer, smooth TUI rendering. The difference is only at teardown: inline mode captures the last painted frame (from the internal `olines` cell matrix), serializes it to ANSI text with colors and styles preserved, leaves the alternate buffer, clears the main viewport, and writes the snapshot.
+
+### commitLastFrameInline()
+
+The inline snapshot can also be triggered explicitly, independent of `destroy()`. This is useful for "freeze and quit" keybindings.
+
+`````javascript
+var screen = galactica.screen({ exitMode: 'inline' })
+
+screen.key(['q'], function () {
+  screen.commitLastFrameInline()
+  process.exit(0)
+})
+`````
+
+Calling `commitLastFrameInline()` more than once is safe — the second call is a no-op.
+
+If `exitMode` is `'inline'`, `destroy()` calls `commitLastFrameInline()` automatically. If the inline commit fails for any reason, it falls back to normal restore behavior so the terminal is never left in a broken state.
+
+**Example:** [inline exit demo](./examples/dashboards/inline-exit-demo.js)
 
 ---
 
