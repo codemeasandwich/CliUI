@@ -1668,20 +1668,47 @@ screen.render()
 | `scrollOffset` | number | `0` | Lines scrolled off the top |
 | `scrollbar` | boolean | `true` | Show scrollbar column |
 | `bottomCutout` | object | — | `{ width, height }` for bottom-right step |
+| `topCutout` | object | — | `{ width, height }` for top-left step |
 | `attr` | number | `0` | Cell attribute for border characters |
 
-### Visual Example
+### Visual Examples
+
+#### Scrolled to top (with top + bottom cutouts)
 
 `````
-┃╭─ USER ─────╮                ╽┃
-┃│ completed! │                ┊┃
-┃╰────────────╯                ┆┃
+┏┯━━━━━━━━━━━┛                 ▴┃  ← top transition (step closure)
+┃│ completed! │                ╽┃
+┃╰────────────╯                ┊┃
 ┃╭─ AI ───────────────────────╮┆┃
 ┃│ I'll start by reading the  │┆┃
 ┃│ assigned task document and │┆┃
-┃│ understanding the current  │▾┃
-┃│ sta… ┏━━━━━━━━━━━━━━━━━━━━━┷━┛
-┗┷━━━━━━┛ footer text
+┃│ understanding the current  │┆┃
+┃│ state of the project.      │▾┃
+┃│ sta… ┏━━━━━━━━━━━━━━━━━━━━━━┷┛  ← bottom transition (step border)
 `````
 
-Note the exact single-cell adjacency between `┃` and `│`, mixed-stroke junction `┷` at the scrollbar/step border intersection, and ellipsis `…` appearing only where content is clipped by the viewport.
+#### Scrolled down (left-clipped content at top transition)
+
+`````
+┏┯━━━━━━━━━━━┛ …project.      │▴┃  ← left-clipped: text hidden by step
+┃│ starting from the test ent…│┆┃  ← right-clipped: ellipsis at viewport edge
+┃╰────────────────────────────╯┆┃
+┃╭─ USER ──────────────────╮   ┆┃
+┃│ also run the full e2e   │   ┊┃
+┃│ suite before closing it │   ╽┃
+┃╰─────────────────────────╯   ┊┃
+┃╭─ AI ───────────────────────╮▾┃
+┃│ unt… ┏━━━━━━━━━━━━━━━━━━━━━━┷┛
+`````
+
+Key rendering details:
+
+- **Single-cell adjacency**: `┃│` — outer heavy and inner light borders are directly adjacent with no spacer
+- **Mixed-stroke junctions**: `┷` (light-up + heavy-horiz) at scrollbar/step intersection, `┯` (light-down + heavy-horiz) at inner border/step intersection — resolved by the canonical intersection module, not paint order
+- **Ellipsis** (`…`) appears only where content is clipped by the viewport boundary or cutout step border
+- **Left-side clipping**: on the top transition row, content hidden by the step closure shows `…` followed by the visible right portion
+- **Top cutout**: when `topCutout` is provided, the body starts at `yi` (the step junction row doubles as the first body row) rather than `yi+1`
+
+### Runnable Example
+
+See [examples/layout/cutout-body-demo.js](examples/layout/cutout-body-demo.js) for a live interactive demo with scroll controls.

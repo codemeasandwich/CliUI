@@ -693,3 +693,280 @@ test('golden-output — full grid composition exactness', async function (t) {
     assert.strictEqual(grid[lastRow][21], '\u251B', '┛ at outer right');
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Four-State Golden Tests — Exact Row-for-Row Grid Verification
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('golden-output — four scroll states exact row match', async function (t) {
+
+  // ── Shared fixture: 4 messages producing 17 virtual lines ─────────────
+  // Msg 1 (USER):  3 vLines (box-top + 1 content + box-bottom)
+  // Msg 2 (AI):    7 vLines (box-top + 5 content + box-bottom)
+  // Msg 3 (USER):  4 vLines (box-top + 2 content + box-bottom)
+  // Msg 4 (AI):    3 vLines (box-top + 1 content + box-bottom)
+  var goldenMessages = [
+    { role: 'USER', text: 'completed!' },
+    { role: 'AI', text: 'I\'ll start by reading the\nassigned task document and\nunderstanding the current\nstate of the project.\nstarting from the test entry' },
+    { role: 'USER', text: 'also run the full e2e\nsuite before closing it' },
+    { role: 'AI', text: 'until the coverage meets the threshold' }
+  ];
+
+  // ── Cutout geometry for Example A and B ─────────────────────────────────
+  // xi=0, xl=33 → gridWidth=33, outerLeft=0, outerRight=32
+  // yi=1, yl=11 → bodyTop=1 (with topCutout), bodyBottom=9, bodyHeight=9
+  // topCutout width=12 → topStepCol=13, top transition at bodyTop
+  // bottomCutout width=7 → bottomStepCol=8, bottom transition at bodyBottom
+  // scrollbarCol=31, contentLeft=1, contentRight=30, contentWidth=30
+  var cutoutViewport = viewportGeometry.computeViewport({
+    xi: 0, xl: 33, yi: 1, yl: 11, hasScrollbar: true,
+    topCutout: { width: 12, height: 2 },
+    bottomCutout: { width: 7, height: 2 }
+  });
+
+  // ── No-cutout geometry for fully-top and fully-bottom ───────────────────
+  // Same box dimensions but no cutouts → bodyTop=2, bodyHeight=8
+  var plainViewport = viewportGeometry.computeViewport({
+    xi: 0, xl: 33, yi: 1, yl: 11, hasScrollbar: true
+  });
+
+  // ── Helper: compose a grid with a given viewport and scroll offset ──────
+  function composeGrid(vp, scrollOffset, hasBtmCutout) {
+    var vLines = compositor.buildVirtualLines(goldenMessages, vp.defaultContentWidth);
+    // Scrollbar height: full body height minus 1 for bottom cutout transition
+    var sbH = hasBtmCutout ? (vp.bodyHeight - 1) : vp.bodyHeight;
+    var sb = scrollbar.computeScrollbar(sbH, vLines.length, scrollOffset);
+    return compositor.compose({
+      bodyTop: vp.bodyTop, bodyHeight: vp.bodyHeight,
+      contentLeft: vp.defaultContentLeft, contentRight: vp.defaultContentRight,
+      scrollbarCol: vp.scrollbarCol,
+      outerLeft: vp.outerLeft, outerRight: vp.outerRight,
+      virtualLines: vLines, scrollOffset: scrollOffset, scrollbarGlyphs: sb,
+      bottomStepCol: vp.bottomStepCol, bottomStepRow: vp.bottomTransitionRow,
+      topStepCol: vp.topStepCol, topStepRow: vp.topTransitionRow
+    });
+  }
+
+  // ── Example A: scrollOffset=0, with top+bottom cutouts ─────────────────
+  // Body rows 0-8: top transition (USER box hidden), content, bottom transition
+  await t.test('Example A — scrollOffset=0, row-for-row exact match', function () {
+    var grid = composeGrid(cutoutViewport, 0, true);
+    var expected = [
+      // Row 0: top transition — USER box-top completely hidden by step
+      // ┏ at col 0, ┯ at col 1 (inner border junction from │ below),
+      // ━ fill to col 12, ┛ step closure at col 13, spaces, ▴ scrollbar, ┃ outer right
+      '\u250F\u252F\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u251B                 \u25B4\u2503',
+      // Row 1: ┃│ completed! │ (USER content, 14-wide box)
+      '\u2503\u2502 completed! \u2502                \u257D\u2503',
+      // Row 2: ┃╰────────────╯ (USER box-bottom)
+      '\u2503\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256F                \u250A\u2503',
+      // Row 3: ┃╭─ AI ───────────────────────╮ (AI box-top, 30-wide)
+      '\u2503\u256D\u2500 AI \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256E\u2506\u2503',
+      // Row 4: ┃│ I'll start by reading the  │
+      '\u2503\u2502 I\'ll start by reading the  \u2502\u2506\u2503',
+      // Row 5: ┃│ assigned task document and │
+      '\u2503\u2502 assigned task document and \u2502\u2506\u2503',
+      // Row 6: ┃│ understanding the current  │
+      '\u2503\u2502 understanding the current  \u2502\u2506\u2503',
+      // Row 7: ┃│ state of the project.      │▾
+      '\u2503\u2502 state of the project.      \u2502\u25BE\u2503',
+      // Row 8: bottom transition — ┃│ sta… ┏━━━━━━━━━━━━━━━━━━━━━━┷┛
+      '\u2503\u2502 sta\u2026 \u250F\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2537\u251B'
+    ];
+    assert.strictEqual(grid.length, expected.length,
+      'grid height = ' + expected.length);
+    for (var r = 0; r < expected.length; r++) {
+      assert.strictEqual(gridRow(grid, r), expected[r],
+        'Example A row ' + r + ' exact match');
+    }
+  });
+
+  // ── Example B: scrollOffset=7, with top+bottom cutouts ─────────────────
+  // Content scrolled: AI text left-clipped at top, msg4 clipped at bottom
+  await t.test('Example B — scrollOffset=7, row-for-row exact match', function () {
+    var grid = composeGrid(cutoutViewport, 7, true);
+    var expected = [
+      // Row 0: top transition — "state of the project." left-clipped
+      // Left-clipped: textOffset=12 → "…project." visible after step closure
+      '\u250F\u252F\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u251B \u2026project.      \u2502\u25B4\u2503',
+      // Row 1: ┃│ starting from the test ent…│ (right-clipped with ellipsis)
+      '\u2503\u2502 starting from the test ent\u2026\u2502\u2506\u2503',
+      // Row 2: ┃╰────────────────────────────╯ (AI box-bottom)
+      '\u2503\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256F\u2506\u2503',
+      // Row 3: ┃╭─ USER ──────────────────╮    (msg3 USER box, 27-wide)
+      '\u2503\u256D\u2500 USER \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256E   \u2506\u2503',
+      // Row 4: ┃│ also run the full e2e   │
+      '\u2503\u2502 also run the full e2e   \u2502   \u250A\u2503',
+      // Row 5: ┃│ suite before closing it │
+      '\u2503\u2502 suite before closing it \u2502   \u257D\u2503',
+      // Row 6: ┃╰─────────────────────────╯
+      '\u2503\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256F   \u250A\u2503',
+      // Row 7: ┃╭─ AI ───────────────────────╮▾ (msg4 AI box-top)
+      '\u2503\u256D\u2500 AI \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256E\u25BE\u2503',
+      // Row 8: bottom transition — ┃│ unt… ┏━━━━━━━━━━━━━━━━━━━━━━┷┛
+      '\u2503\u2502 unt\u2026 \u250F\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2537\u251B'
+    ];
+    assert.strictEqual(grid.length, expected.length,
+      'grid height = ' + expected.length);
+    for (var r = 0; r < expected.length; r++) {
+      assert.strictEqual(gridRow(grid, r), expected[r],
+        'Example B row ' + r + ' exact match');
+    }
+  });
+
+  // ── Fully-top: scrollOffset=0, no cutouts ──────────────────────────────
+  // Standard body without cutout transitions — clean viewport
+  await t.test('Fully-top — scrollOffset=0, no cutouts, row-for-row', function () {
+    var grid = composeGrid(plainViewport, 0, false);
+    var expected = [
+      // Row 0: ┃╭─ USER ─────╮                ▴┃
+      '\u2503\u256D\u2500 USER \u2500\u2500\u2500\u2500\u2500\u256E                \u25B4\u2503',
+      // Row 1: ┃│ completed! │                ╽┃
+      '\u2503\u2502 completed! \u2502                \u257D\u2503',
+      // Row 2: ┃╰────────────╯                ┊┃
+      '\u2503\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256F                \u250A\u2503',
+      // Row 3: ┃╭─ AI ───────────────────────╮┆┃
+      '\u2503\u256D\u2500 AI \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256E\u2506\u2503',
+      // Row 4: ┃│ I'll start by reading the  │┆┃
+      '\u2503\u2502 I\'ll start by reading the  \u2502\u2506\u2503',
+      // Row 5: ┃│ assigned task document and │┆┃
+      '\u2503\u2502 assigned task document and \u2502\u2506\u2503',
+      // Row 6: ┃│ understanding the current  │┆┃
+      '\u2503\u2502 understanding the current  \u2502\u2506\u2503',
+      // Row 7: ┃│ state of the project.      │▾┃
+      '\u2503\u2502 state of the project.      \u2502\u25BE\u2503'
+    ];
+    assert.strictEqual(grid.length, expected.length,
+      'grid height = ' + expected.length);
+    for (var r = 0; r < expected.length; r++) {
+      assert.strictEqual(gridRow(grid, r), expected[r],
+        'Fully-top row ' + r + ' exact match');
+    }
+  });
+
+  // ── Fully-bottom: scrollOffset=maxScroll, no cutouts ───────────────────
+  // Scrolled to the end of content
+  await t.test('Fully-bottom — scrollOffset=maxScroll, no cutouts, row-for-row', function () {
+    var vLines = compositor.buildVirtualLines(goldenMessages, plainViewport.defaultContentWidth);
+    var maxScroll = Math.max(0, vLines.length - plainViewport.bodyHeight);
+    var grid = composeGrid(plainViewport, maxScroll, false);
+    var expected = [
+      // Row 0: ┃╰────────────────────────────╯▴┃ (AI box-bottom from msg2)
+      '\u2503\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256F\u25B4\u2503',
+      // Row 1: ┃╭─ USER ──────────────────╮   ┆┃ (msg3 box-top)
+      '\u2503\u256D\u2500 USER \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256E   \u2506\u2503',
+      // Row 2: ┃│ also run the full e2e   │   ┆┃
+      '\u2503\u2502 also run the full e2e   \u2502   \u2506\u2503',
+      // Row 3: ┃│ suite before closing it │   ┆┃
+      '\u2503\u2502 suite before closing it \u2502   \u2506\u2503',
+      // Row 4: ┃╰─────────────────────────╯   ┆┃ (msg3 box-bottom)
+      '\u2503\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256F   \u2506\u2503',
+      // Row 5: ┃╭─ AI ───────────────────────╮┊┃ (msg4 box-top)
+      '\u2503\u256D\u2500 AI \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256E\u250A\u2503',
+      // Row 6: ┃│ until the coverage meets t…│╽┃ (right-clipped)
+      '\u2503\u2502 until the coverage meets t\u2026\u2502\u257D\u2503',
+      // Row 7: ┃╰────────────────────────────╯▾┃ (msg4 box-bottom)
+      '\u2503\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256F\u25BE\u2503'
+    ];
+    assert.strictEqual(grid.length, expected.length,
+      'grid height = ' + expected.length);
+    for (var r = 0; r < expected.length; r++) {
+      assert.strictEqual(gridRow(grid, r), expected[r],
+        'Fully-bottom row ' + r + ' exact match');
+    }
+  });
+
+  // ── Mandatory explicit assertions ──────────────────────────────────────
+
+  await t.test('single-cell adjacency: ┃│ sta… ┏ — no inserted space (Example A)', function () {
+    // On the bottom transition row, outer ┃ at col 0 is immediately adjacent
+    // to inner │ at col 1, with no spacer character between them
+    var grid = composeGrid(cutoutViewport, 0, true);
+    assert.strictEqual(grid[8][0], '\u2503', 'outer ┃ at col 0');
+    assert.strictEqual(grid[8][1], '\u2502', 'inner │ at col 1');
+    // Content continues immediately: space at col 2, then text
+    assert.strictEqual(grid[8][2], ' ', 'space after │');
+    assert.strictEqual(grid[8][3], 's', 'text starts at col 3');
+  });
+
+  await t.test('single-cell adjacency: ┃│ unt… ┏ — no inserted space (Example B)', function () {
+    // Same adjacency contract at scrollOffset=7 (Example B)
+    // Outer ┃ at col 0 immediately adjacent to inner │ at col 1
+    var grid = composeGrid(cutoutViewport, 7, true);
+    assert.strictEqual(grid[8][0], '\u2503', 'outer ┃ at col 0');
+    assert.strictEqual(grid[8][1], '\u2502', 'inner │ at col 1');
+    // Content: space at col 2, "unt" text at cols 3-5, ellipsis at col 6
+    assert.strictEqual(grid[8][2], ' ', 'space after │');
+    assert.strictEqual(grid[8][3], 'u', 'text "u" at col 3');
+    assert.strictEqual(grid[8][4], 'n', 'text "n" at col 4');
+    assert.strictEqual(grid[8][5], 't', 'text "t" at col 5');
+    assert.strictEqual(grid[8][6], '\u2026', 'ellipsis … at col 6');
+    // Step corner ┏ immediately after the box content area
+    assert.strictEqual(grid[8][8], '\u250F', 'step ┏ at col 8');
+  });
+
+  await t.test('ellipsis appears only when clipping actually occurred', function () {
+    // Fully-top state: no text is clipped on the visible rows
+    var grid = composeGrid(plainViewport, 0, false);
+    for (var r = 0; r < grid.length; r++) {
+      var row = gridRow(grid, r);
+      assert.strictEqual(row.indexOf('\u2026'), -1,
+        'row ' + r + ': no ellipsis when text fits without clipping');
+    }
+    // With cutout: bottom transition row HAS ellipsis (text is clipped)
+    var gridC = composeGrid(cutoutViewport, 0, true);
+    var btmRow = gridRow(gridC, 8);
+    assert.ok(btmRow.indexOf('\u2026') !== -1,
+      'bottom transition row has ellipsis when content is right-clipped');
+  });
+
+  await t.test('mixed junctions resolved by intersection module', function () {
+    // ┷ on bottom transition: up=light (from scrollbar track above),
+    // left=heavy (from step ━), right=heavy (from step ━)
+    var resolved = intersection.resolve(
+      intersection.LIGHT, intersection.NONE,
+      intersection.HEAVY, intersection.HEAVY
+    );
+    assert.strictEqual(resolved, '\u2537', '┷ resolved by intersection module');
+
+    // ┯ on top transition: down=light (from inner box │ below),
+    // left=heavy (from step ━), right=heavy (from step ━)
+    var resolvedTop = intersection.resolve(
+      intersection.NONE, intersection.LIGHT,
+      intersection.HEAVY, intersection.HEAVY
+    );
+    assert.strictEqual(resolvedTop, '\u252F', '┯ resolved by intersection module');
+
+    // Verify these glyphs appear in the actual grid
+    var grid = composeGrid(cutoutViewport, 0, true);
+    assert.strictEqual(grid[8][31], '\u2537', '┷ at scrollbar junction on bottom transition');
+    assert.strictEqual(grid[0][1], '\u252F', '┯ at inner border junction on top transition');
+  });
+
+  await t.test('inner thin borders survive alongside outer heavy frame', function () {
+    var grid = composeGrid(cutoutViewport, 0, true);
+    // Outer ┃ at col 0 on every non-transition body row
+    for (var r = 1; r < 8; r++) {
+      assert.strictEqual(grid[r][0], '\u2503', 'row ' + r + ': outer ┃ at col 0');
+    }
+    // Inner │ at col 1 on content rows (rows 1, 4-7)
+    assert.strictEqual(grid[1][1], '\u2502', 'row 1: inner │ at col 1');
+    assert.strictEqual(grid[4][1], '\u2502', 'row 4: inner │ at col 1');
+    // Inner ╭ at col 1 on box-top rows (row 3)
+    assert.strictEqual(grid[3][1], '\u256D', 'row 3: inner ╭ at col 1');
+    // Inner ╰ at col 1 on box-bottom rows (row 2)
+    assert.strictEqual(grid[2][1], '\u2570', 'row 2: inner ╰ at col 1');
+  });
+
+  await t.test('content width accounts for borders + scrollbar + cutout', function () {
+    // Verify viewport dimensions are consistent
+    assert.strictEqual(cutoutViewport.defaultContentWidth, 30,
+      'content width = 30 (outerRight=32, scrollbar=31, contentRight=30, contentLeft=1)');
+    assert.strictEqual(cutoutViewport.scrollbarCol, 31,
+      'scrollbar at col 31');
+    assert.strictEqual(cutoutViewport.bottomStepCol, 8,
+      'bottom step at col 8 (xi=0 + cutoutWidth=7 + 1)');
+    assert.strictEqual(cutoutViewport.topStepCol, 13,
+      'top step at col 13 (xi=0 + cutoutWidth=12 + 1)');
+  });
+});
