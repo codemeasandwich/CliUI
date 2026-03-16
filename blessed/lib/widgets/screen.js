@@ -85,6 +85,15 @@ function Screen(options) {
 
   this.dattr = ((0 << 18) | (0x1ff << 9)) | 0x1ff;
 
+  // Exit mode controls what happens to the rendered frame on teardown.
+  // 'restore' (default): normal alternate-buffer restore — previous shell content reappears.
+  // 'inline': last painted frame is written into the main buffer so it stays visible after exit.
+  // preserveOnExit: true is a convenience alias that maps to 'inline'.
+  this.exitMode = options.exitMode || (options.preserveOnExit ? 'inline' : 'restore');
+
+  // Guard flag to prevent commitLastFrameInline() from running more than once.
+  this._inlineCommitted = false;
+
   this.renders = 0;
   this.position = {
     left: this.left = this.aleft = this.rleft = 0,
@@ -417,7 +426,24 @@ Screen.prototype.postEnter = function() {
 
 Screen.prototype._destroy = Screen.prototype.destroy;
 Screen.prototype.destroy = function() {
-  this.leave();
+  // In inline mode, commit the last frame to the main buffer instead of the
+  // normal leave() which discards the alternate buffer content. If the inline
+  // commit fails for any reason, fall back to normal leave() so the terminal
+  // is never left in a broken state (raw mode on, cursor hidden, etc.).
+  if (this.exitMode === 'inline') {
+    try {
+      this.commitLastFrameInline();
+    } catch (e) {
+      // If the inline commit failed at any point (even after setting
+      // _inlineCommitted), fall back to normal leave() to ensure the
+      // terminal is never left in raw mode, with cursor hidden, or with
+      // mouse reporting enabled. leave() is safe to call even if partial
+      // cleanup already happened — it guards on program.isAlt.
+      this.leave();
+    }
+  } else {
+    this.leave();
+  }
 
   var index = Screen.instances.indexOf(this);
   if (~index) {
@@ -1604,6 +1630,165 @@ Screen.prototype.codeAttr = function(code) {
   if (out[out.length - 1] === ';') out = out.slice(0, -1);
 
   return '\x1b[' + out + 'm';
+};
+
+/**
+ * Serialize the last painted frame (olines) into an ANSI string suitable for
+ * writing into the main terminal buffer. Each row is emitted with SGR escape
+ * sequences produced by codeAttr(), trailing default-attribute spaces are
+ * trimmed, and every row ends with a style reset and newline. The result is a
+ * self-contained block of text that reproduces the final screen image when
+ * printed into a normal (non-alternate) buffer.
+ *
+ * Source priority: olines first (what the user actually saw), then lines as
+ * fallback if nothing has been painted yet.
+ */
+Screen.prototype._serializeFrameForInlineExit = function() {
+  // Pick the buffer that represents what was last displayed to the user.
+  // olines is updated by draw() after each cell is written to the terminal,
+  // so it reflects the actual on-screen state. lines holds the pending/next
+  // frame and may contain uncommitted changes.
+  var source = (this.olines && this.olines.length) ? this.olines : this.lines;
+  if (!source || !source.length) return '';
+
+  var dattr = this.dattr;
+  var result = '';
+  var y, x, cell, attr, ch, prevAttr, lastNonDefault, rowStr;
+
+  for (y = 0; y < source.length; y++) {
+    var row = source[y];
+
+    // Walk backwards to find the rightmost cell that is not a default-attribute
+    // space. Everything to the right of that is trailing whitespace that does
+    // not need to appear in the serialized output.
+    lastNonDefault = -1;
+    for (x = row.length - 1; x >= 0; x--) {
+      if (row[x][0] !== dattr || row[x][1] !== ' ') {
+        lastNonDefault = x;
+        break;
+      }
+    }
+
+    // Entire row is default spaces — emit an empty line.
+    if (lastNonDefault === -1) {
+      result += '\n';
+      continue;
+    }
+
+    prevAttr = dattr;
+    rowStr = '';
+
+    for (x = 0; x <= lastNonDefault; x++) {
+      cell = row[x];
+      attr = cell[0];
+      ch = cell[1];
+
+      // Skip null placeholders used for the second cell of double-width
+      // characters. The terminal handles width automatically when the real
+      // character is emitted.
+      if (ch === '\0' || ch === '\x00') continue;
+
+      // Emit SGR transitions only when the attribute changes between cells.
+      // Reset first when leaving a styled run, then apply the new style.
+      if (attr !== prevAttr) {
+        if (prevAttr !== dattr) {
+          rowStr += '\x1b[m';
+        }
+        if (attr !== dattr) {
+          rowStr += this.codeAttr(attr);
+        }
+        prevAttr = attr;
+      }
+
+      rowStr += ch;
+    }
+
+    // Reset SGR at end of row if we ended inside a styled run, so the
+    // newline and any subsequent terminal output start with clean attributes.
+    if (prevAttr !== dattr) {
+      rowStr += '\x1b[m';
+    }
+
+    result += rowStr + '\n';
+  }
+
+  // Final SGR reset to guarantee no style leakage into the shell prompt.
+  result += '\x1b[m';
+
+  return result;
+};
+
+/**
+ * Commit the last painted frame into the main terminal buffer so it remains
+ * visible after the program exits. This is the core of exitMode: 'inline'.
+ *
+ * The method captures olines, performs terminal state cleanup (mouse, keypad,
+ * scroll region, cursor visibility), leaves the alternate buffer, then writes
+ * the serialized snapshot directly into the main buffer using _owrite
+ * (synchronous, unbuffered) since we are in teardown.
+ *
+ * Safe to call explicitly (e.g. from a quit keybinding). destroy() calls it
+ * automatically when exitMode is 'inline'. The _inlineCommitted guard prevents
+ * double execution.
+ */
+Screen.prototype.commitLastFrameInline = function() {
+  // Prevent double-commit if called explicitly before destroy().
+  if (this._inlineCommitted) return;
+
+  // Nothing to do if we are not in the alternate buffer.
+  if (!this.program.isAlt) return;
+
+  this._inlineCommitted = true;
+
+  // Serialize the last painted frame before any cleanup touches the buffers.
+  var snapshot = this._serializeFrameForInlineExit();
+
+  // --- Terminal state cleanup (mirrors leave() but skips alloc/normalBuffer) ---
+
+  // Restore keypad to local (numeric) mode from application (transmit) mode.
+  this.program.put.keypad_local();
+
+  // Reset scroll region if it was modified from the full-screen default.
+  if (this.program.scrollTop !== 0
+      || this.program.scrollBottom !== this.rows - 1) {
+    this.program.csr(0, this.height - 1);
+  }
+
+  // Show cursor before leaving alternate buffer (required for linux console).
+  this.program.showCursor();
+
+  // Disable mouse reporting so the shell does not receive mouse escape codes.
+  if (this._listenedMouse) {
+    this.program.disableMouse();
+  }
+
+  // Reset cursor shape/color if it was customized.
+  if (this.cursor._set) this.cursorReset();
+
+  // Flush any buffered escape sequences from the cleanup above.
+  this.program.flush();
+
+  // --- Leave alternate buffer and write snapshot into main buffer ---
+
+  // Return to the normal (main) buffer. The alternate buffer content is
+  // discarded by the terminal, and the main buffer (with prior shell content)
+  // becomes visible again.
+  this.program.normalBuffer();
+  this.program.flush();
+
+  // Move cursor to home position and clear the visible viewport so the
+  // snapshot writes onto a clean surface. Without this, prior main-buffer
+  // content could show through gaps in the snapshot.
+  this.program._owrite('\x1b[H');
+  this.program._owrite('\x1b[2J');
+
+  // Write the serialized frame directly to the output stream. Using _owrite
+  // (not _write) because we need synchronous, unbuffered output during
+  // teardown — the process may exit immediately after this. The snapshot
+  // already ends with a final SGR reset (\x1b[m).
+  if (snapshot) {
+    this.program._owrite(snapshot);
+  }
 };
 
 Screen.prototype.focusOffset = function(offset) {

@@ -15,6 +15,7 @@ var galactica = require('../../lib/blessed');
 function TestOutputBuffer (options) {
   options = options || {};
   this.isTTY = true;
+  this.writable = true;
   this.columns = options.cols || 120;
   this.rows = options.rows || 40;
   this.output = [];
@@ -25,6 +26,7 @@ function TestOutputBuffer (options) {
   };
 
   this.on = function () {};
+  this.removeListener = function () {};
 
   this.getOutput = function () {
     return this.output.join('');
@@ -48,6 +50,7 @@ function TestInputBuffer () {
   this.resume = function () {};
   this.pause = function () {};
   this.on = function () {};
+  this.removeListener = function () {};
 }
 
 /**
@@ -67,11 +70,14 @@ function createMockScreen (options) {
     input: input
   });
 
-  var screen = galactica.screen({
+  // Merge caller-supplied screen options (e.g. exitMode) with defaults.
+  // This allows tests to exercise screen features that require constructor
+  // options without duplicating the full mock setup.
+  var screen = galactica.screen(Object.assign({
     program: program,
     smartCSR: true,
     warnings: false
-  });
+  }, options.screenOptions || {}));
 
   screen._testOutput = output;
   screen._testInput = input;
