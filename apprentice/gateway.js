@@ -72,6 +72,24 @@ async function requestLLM(api, prompt, provider, model) {
         provider,
         messages: [{ role: "user", content: prompt }],
         stream: true,
+        // Force print mode — the apprentice prompt already contains all
+        // necessary context (task description, library docs, prior feedback).
+        // Without this, CLI providers (claude-cli) enter full agentic mode
+        // with tool use, exploring files and spending 5-10min per request.
+        // print_mode maps to --print in the CLI for non-interactive output.
+        // Note: max_turns is NOT overridden here — with --print mode, the
+        // gateway's default_max_turns provides adequate turn budget for
+        // generating complete code responses (~1500 chars).
+        //
+        // stale_stream_timeout_secs overrides the gateway's default 120s
+        // watchdog. The apprentice sends large prompts (task + repo docs +
+        // prior learning artifacts) that can take >120s before the first
+        // streaming token arrives. Without this, the gateway kills the
+        // provider process before it has a chance to respond.
+        provider_options: {
+            print_mode: true,
+            stale_stream_timeout_secs: Math.ceil(CONFIG.streamTimeoutMs / 1000),
+        },
     };
     if (model) {
         payload.model = model;
@@ -86,17 +104,20 @@ async function requestLLM(api, prompt, provider, model) {
     return new Promise((resolve, reject) => {
         let buffer = "";
 
-        // Safety timeout — LLM responses should complete within 5 min.
+        // Safety timeout — configurable via CONFIG.streamTimeoutMs.
+        // Default 600s accommodates slower models and large prompts.
+        const timeoutMs = CONFIG.streamTimeoutMs || 600_000;
+        const timeoutSecs = timeoutMs / 1000;
         const streamTimeout = setTimeout(() => {
             unsubscribe();
             reject(
                 new Error(
-                    `LLM stream timeout after 300s for provider '${provider}'. ` +
+                    `LLM stream timeout after ${timeoutSecs}s for provider '${provider}'. ` +
                     `The stream started (requestId=${requestId}) but never ` +
                     `received message_stop. Provider may be hung or overloaded.`
                 )
             );
-        }, 300_000);
+        }, timeoutMs);
 
         const unsubscribe = api.stream[requestId]((event) => {
             // Accumulate text deltas. Guard against undefined — some
@@ -171,4 +192,19 @@ async function askEvaluator(api, prompt) {
     return requestLLM(api, prompt, CONFIG.evaluatorProvider, CONFIG.evaluatorModel);
 }
 
-module.exports = { connectGateway, requestLLM, askApprentice, askEvaluator };
+/**
+ * Purpose: Ask the Requirements Analyst actor to diagnose a persistent failure.
+ * Inputs:
+ *   - api: {object} connected api-ape client
+ *   - prompt: {string} built analyst prompt containing episode data and CliUI capability inventory
+ * Outputs: {Promise<string>} raw analyst response (expected to be JSON format)
+ * Side effects: Logs sending attempt to console.
+ * Failure behavior: Bubbles up rejections from `requestLLM`.
+ * Important assumptions: Only called when shouldAnalyze() trigger conditions are met.
+ */
+async function askAnalyst(api, prompt) {
+    console.log("[analyst] Sending failure analysis to Analyst…");
+    return requestLLM(api, prompt, CONFIG.analystProvider, CONFIG.analystModel);
+}
+
+module.exports = { connectGateway, requestLLM, askApprentice, askEvaluator, askAnalyst };

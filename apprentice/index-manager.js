@@ -29,6 +29,7 @@ const INDEX_FILES = {
     skill:          "skills.json",
     exemplar:       "exemplars.json",
     "anti-pattern": "anti-patterns.json",
+    requirement:    "requirements.json",
 };
 
 /**
@@ -175,6 +176,7 @@ async function rebuildIndex(type) {
         skill:          CONFIG.paths.skills,
         exemplar:       CONFIG.paths.exemplars,
         "anti-pattern": CONFIG.paths.antiPatterns,
+        requirement:    CONFIG.paths.requirements,
     };
     const dir = dirMap[type];
     if (!dir) {

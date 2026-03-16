@@ -57,6 +57,17 @@ function formatLearningSection(retrieved) {
         sections.push("");
     }
 
+    // Requirements: known capability gaps from the Requirements Analyst.
+    // These tell the Apprentice what the CliUI library cannot currently do,
+    // preventing future episodes from attempting impossible tasks.
+    if (retrieved.requirements && retrieved.requirements.length > 0) {
+        sections.push("### Known Capability Gaps\n");
+        for (const req of retrieved.requirements) {
+            sections.push(`- **${req.title}** — ${(req.body || "").slice(0, 300)}`);
+        }
+        sections.push("");
+    }
+
     // Exemplars: one reference example (truncated script).
     if (retrieved.exemplars && retrieved.exemplars.length > 0) {
         const ex = retrieved.exemplars[0];

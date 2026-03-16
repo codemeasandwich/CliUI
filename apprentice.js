@@ -23,6 +23,7 @@ const { runAttemptLoop } = require("./apprentice/attempt-loop");
 const { bootstrapLearningDirs } = require("./apprentice/learning-store");
 const { buildSummary, saveEpisodeSummary } = require("./apprentice/episode-summary");
 const { distillEpisode } = require("./apprentice/distill");
+const { shouldAnalyze, analyzeFailure } = require("./apprentice/analyst");
 const { loadBenchmarkTask, loadAllBenchmarkTasks } = require("./apprentice/benchmark-loader");
 const { runBenchmarkSuite } = require("./apprentice/benchmark-runner");
 const { loadEpisodeTask } = require("./apprentice/replay-runner");
@@ -110,6 +111,23 @@ async function runEpisode(task, disableRetrieval = false) {
             }
         } else {
             console.log("  No learning artifacts distilled from this episode.");
+        }
+
+        // Step 6 — Conditional failure analysis.
+        // When the episode shows persistent low-quality output despite
+        // running code, the Requirements Analyst investigates whether
+        // the CliUI library lacks the capabilities the task demands.
+        // Wrapped in try/catch — analyst failure must not prevent
+        // normal episode completion.
+        if (shouldAnalyze(history, stopReason)) {
+            console.log("  [analyst] Persistent failure detected — running requirements analysis…");
+            try {
+                const analysisResult = await analyzeFailure(api, id, task, history);
+                console.log(`  [analyst] Classification: ${analysisResult.classification}`);
+                console.log(`  [analyst] Requirement: ${analysisResult.created.id}`);
+            } catch (err) {
+                console.warn(`  [analyst] Analysis failed (non-fatal): ${err.message}`);
+            }
         }
 
         return { episodeDir, summary };
